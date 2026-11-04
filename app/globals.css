@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Gowun Dodum", "Pretendard", system-ui, sans-serif;
+  --font-display: "Jua", "Gowun Dodum", system-ui, sans-serif;
+  --color-pine: #1f7a45;
+  --color-berry: #c8102e;
+  --color-cream: #fff8ec;
+}
+
+html, body { height: 100%; }
+body {
+  background: #0f2a44;
+  color: #fff;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.font-display { font-family: var(--font-display); }
+
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1d2b3a;
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  border-radius: 999px; padding: .85rem 1.4rem; font-family: var(--font-display);
+  font-size: 1.05rem; transition: transform .1s ease, filter .15s ease;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .5; }
+.btn-primary { background: #c8102e; color: #fff; box-shadow: 0 4px 0 #8a0b20; }
+.btn-light { background: #fff; color: #1d2b3a; box-shadow: 0 4px 0 #c9d3dd; }
+.btn-ghost { background: rgba(255,255,255,.15); color: inherit; }
+
+@keyframes sway { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.ornament-sway { animation: sway 3s ease-in-out infinite; transform-origin: 50% -6px; }
+
+@keyframes pop-in { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.pop-in { animation: pop-in .45s cubic-bezier(.34,1.56,.64,1) both; }
+
+@keyframes twinkle { 0%,100% { filter: drop-shadow(0 0 4px #ffe680); } 50% { filter: drop-shadow(0 0 14px #ffd000); } }
+.twinkle { animation: twinkle 2s ease-in-out infinite; }
+
+@keyframes sleigh {
+  from { transform: translateX(-30vw) translateY(0) rotate(-6deg); }
+  50% { transform: translateX(50vw) translateY(-30px) rotate(0deg); }
+  to { transform: translateX(130vw) translateY(10px) rotate(6deg); }
+}
+.sleigh { animation: sleigh 4.5s linear forwards; }
+
+@keyframes cry { 0%,100% { transform: translateY(0); } 50% { transform: translateY(3px) rotate(-8deg); } }
+.cry { animation: cry .4s ease-in-out 6; }
+
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.shake { animation: shake .3s ease-in-out 2; }
+
+@keyframes float-heart { from { transform: translateY(0) scale(.6); opacity: 1; } to { transform: translateY(-80vh) scale(1.4); opacity: 0; } }
+.float-heart { animation: float-heart 3s ease-out forwards; }
