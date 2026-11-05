@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { createAdminClient, isConfigured } from "@/lib/supabase/server";
-import { CONFESSION_ORNAMENT, isValidOrnament } from "@/lib/constants";
+import { isValidOrnament } from "@/lib/constants";
 import { hasBannedWord } from "@/lib/moderation";
 
 const PER_MINUTE = 5;
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const content = String(body.content ?? "").trim();
   const nickname = String(body.nickname ?? "").trim().slice(0, 20) || "익명의 산타";
   const isConfession = body.isConfession === true;
-  const ornamentType = isConfession ? CONFESSION_ORNAMENT.id : String(body.ornamentType ?? "");
+  const ornamentType = String(body.ornamentType ?? "");
 
   if (!treeId) return NextResponse.json({ error: "트리를 찾을 수 없어요." }, { status: 400 });
   if (!isValidOrnament(ornamentType)) return NextResponse.json({ error: "장식을 골라주세요." }, { status: 400 });

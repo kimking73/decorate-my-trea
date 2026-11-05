@@ -10,7 +10,7 @@ export default async function WritePage({ params }: { params: Promise<{ slug: st
   if (!tree) notFound();
   return (
     <WriteForm
-      tree={{ id: tree.id, slug: tree.slug, title: tree.title, owner_name: tree.owner_name, theme: tree.theme, kind: tree.kind, department: tree.department }}
+      tree={{ id: tree.id, slug: tree.slug, title: tree.title, owner_name: tree.owner_name, theme: tree.theme, kind: tree.kind, }}
     />
   );
 }

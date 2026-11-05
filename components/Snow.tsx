@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-/** 눈 내리는 배경. window 에 "snowstorm" 이벤트를 보내면 잠시 폭설이 된다. */
+/** 눈 내리는 배경. density 는 D-day 가 가까울수록 커진다. */
 export default function Snow({ density = 60 }: { density?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -9,8 +9,6 @@ export default function Snow({ density = 60 }: { density?: number }) {
     const canvas = ref.current!;
     const ctx = canvas.getContext("2d")!;
     let w = 0, h = 0, raf = 0;
-    let boost = 1;
-    let boostUntil = 0;
     const flakes: { x: number; y: number; r: number; s: number; d: number }[] = [];
 
     const resize = () => {
@@ -24,19 +22,15 @@ export default function Snow({ density = 60 }: { density?: number }) {
     resize();
     spawn(density);
 
-    const onStorm = () => { boostUntil = Date.now() + 5000; if (flakes.length < density * 4) spawn(density * 3); };
     window.addEventListener("resize", resize);
-    window.addEventListener("snowstorm", onStorm);
 
     const tick = () => {
-      boost = Date.now() < boostUntil ? 4 : 1;
-      if (boost === 1 && flakes.length > density) flakes.length = Math.max(density, flakes.length - 2);
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = "rgba(255,255,255,.85)";
       for (const f of flakes) {
         f.d += 0.01;
-        f.y += f.s * boost;
-        f.x += Math.sin(f.d) * 0.5 * boost;
+        f.y += f.s;
+        f.x += Math.sin(f.d) * 0.5;
         if (f.y > h) { f.y = -5; f.x = Math.random() * w; }
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
@@ -48,7 +42,6 @@ export default function Snow({ density = 60 }: { density?: number }) {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("snowstorm", onStorm);
     };
   }, [density]);
 

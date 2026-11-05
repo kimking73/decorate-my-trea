@@ -12,7 +12,6 @@ export type Tree = {
   department: string | null;
   kind: "user" | "professor" | "special";
   description: string | null;
-  show_in_ranking: boolean;
   created_at: string;
 };
 
@@ -20,35 +19,33 @@ export type OrnamentRow = {
   id: string;
   ornament_type: string;
   nickname: string;
-  is_confession: boolean;
   created_at: string;
 };
 
 export type Stats = { tree_count: number; letter_count: number; confession_count: number; today_count: number };
-export type TopTree = { slug: string; title: string; owner_name: string; kind: string; letter_count: number };
 
 // select('*') 는 컬럼 단위 권한 때문에 실패하므로 명시적으로 나열
 export const TREE_COLUMNS =
-  "id, owner_id, slug, title, owner_name, theme, department, kind, description, show_in_ranking, created_at";
+  "id, owner_id, slug, title, owner_name, theme, department, kind, description, created_at";
 
 // ---------- 데모 모드 (Supabase 미설정 시 화면 미리보기용) ----------
 const DEMO_TREES: Tree[] = [
   {
-    id: "demo", owner_id: null, slug: "demo", title: "지곡동 산타의 트리", owner_name: "포스테키안",
-    theme: "classic", department: "cse", kind: "user", description: null, show_in_ranking: true,
+    id: "demo", owner_id: null, slug: "demo", title: "포스테키안님의 트리", owner_name: "포스테키안",
+    theme: "classic", department: "cse", kind: "user", description: null,
     created_at: new Date().toISOString(),
   },
   {
     id: "demo-prof", owner_id: null, slug: "prof-demo", title: "OO 교수님께 드리는 트리", owner_name: "OO 교수님",
     theme: "chalkboard", department: null, kind: "professor",
-    description: "한 학기 동안 감사했습니다! 교수님께 익명으로 마음을 전해요.", show_in_ranking: false,
+    description: "한 학기 동안 감사했습니다! 교수님께 익명으로 마음을 전해요.",
     created_at: new Date().toISOString(),
   },
 ];
-const DEMO_TYPES = ["ball-red", "jigok", "confession", "star", "coffee", "aplus", "gift", "stairs77", "snowman", "gwamegi", "confession", "dept-cse"];
+const DEMO_TYPES = ["ball-red", "jigok", "sock", "star", "coffee", "aplus", "gift", "stairs77", "snowman", "gwamegi", "bell", "dept-cse"];
 const DEMO_ORNAMENTS: OrnamentRow[] = DEMO_TYPES.map((t, i) => ({
-  id: `demo-${i}`, ornament_type: t, nickname: t === "confession" ? "???" : ["룸메", "실험실 동기", "익명의 산타", "과대", "새터 조원"][i % 5],
-  is_confession: t === "confession", created_at: new Date().toISOString(),
+  id: `demo-${i}`, ornament_type: t, nickname: ["룸메", "실험실 동기", "익명의 산타", "과대", "새터 조원"][i % 5],
+  created_at: new Date().toISOString(),
 }));
 
 export const demoMode = !isConfigured;
@@ -111,13 +108,6 @@ export async function getStats(): Promise<Stats> {
   };
 }
 
-export async function getTopTrees(): Promise<TopTree[]> {
-  if (!isConfigured) return [{ slug: "demo", title: "지곡동 산타의 트리", owner_name: "포스테키안", kind: "user", letter_count: 12 }];
-  const supabase = await createClient();
-  const { data } = await supabase.rpc("get_top_trees", { p_limit: 5 });
-  return ((data ?? []) as TopTree[]).map((t) => ({ ...t, letter_count: Number(t.letter_count) }));
-}
-
 export async function getSpecialTrees(): Promise<Tree[]> {
   if (!isConfigured) return DEMO_TREES.filter((t) => t.kind !== "user");
   const supabase = await createClient();
@@ -142,5 +132,5 @@ export async function getLetters(treeId: string) {
     .select("id, ornament_type, nickname, content, is_confession, created_at")
     .eq("tree_id", treeId)
     .order("created_at", { ascending: true });
-  return (data ?? []) as (OrnamentRow & { content: string })[];
+  return (data ?? []) as (OrnamentRow & { content: string; is_confession: boolean })[];
 }

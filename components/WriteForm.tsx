@@ -6,10 +6,10 @@ import confetti from "canvas-confetti";
 import Snow from "@/components/Snow";
 import { themeBackground } from "@/components/TreeScene";
 import {
-  CONFESSION_ORNAMENT, DEPARTMENTS, ORNAMENTS, PROFESSOR_ORNAMENTS, deptOrnament, findKeywordEgg, type Ornament,
+  DEPARTMENTS, ORNAMENTS, PROFESSOR_ORNAMENTS, deptOrnament, findKeywordEgg, type Ornament,
 } from "@/lib/constants";
 
-type Tree = { id: string; slug: string; title: string; owner_name: string; theme: string; kind: string; department: string | null };
+type Tree = { id: string; slug: string; title: string; owner_name: string; theme: string; kind: string; department?: string | null };
 
 export default function WriteForm({ tree }: { tree: Tree }) {
   const router = useRouter();
@@ -20,11 +20,9 @@ export default function WriteForm({ tree }: { tree: Tree }) {
     if (isProfessor) t.push({ id: "prof", name: "👨‍🏫 교수님", items: PROFESSOR_ORNAMENTS });
     t.push({ id: "basic", name: "기본", items: ORNAMENTS.filter((o) => o.group === "basic") });
     t.push({ id: "postech", name: "🦁 POSTECH", items: ORNAMENTS.filter((o) => o.group === "postech") });
-    const depts = DEPARTMENTS.map((d) => deptOrnament(d.id)!);
-    const mine = deptOrnament(tree.department);
-    t.push({ id: "dept", name: "학과", items: mine ? [mine, ...depts.filter((d) => d.id !== mine.id)] : depts });
+    t.push({ id: "dept", name: "학과", items: DEPARTMENTS.map((d) => deptOrnament(d.id)!) });
     return t;
-  }, [isProfessor, tree.department]);
+  }, [isProfessor]);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [tab, setTab] = useState(tabs[0].id);
@@ -61,11 +59,10 @@ export default function WriteForm({ tree }: { tree: Tree }) {
       setEgg(e.message);
       delay = 2200;
       if (e.effect === "confetti") confetti({ particleCount: 180, spread: 100, origin: { y: 0.7 } });
-      if (e.effect === "snow") window.dispatchEvent(new Event("snowstorm"));
       if (e.effect === "heart") setHearts(true);
     } else if (confession) {
       setHearts(true);
-      setEgg("💘 고백이 크리스마스에 전달될 거예요...");
+      setEgg("💘 두근두근... 크리스마스에 전해질 거예요");
       delay = 2000;
     } else {
       confetti({ particleCount: 60, spread: 60, origin: { y: 0.8 }, colors: ["#c8102e", "#1f7a45", "#ffd36b"] });
@@ -75,7 +72,7 @@ export default function WriteForm({ tree }: { tree: Tree }) {
   }
 
   const current = tabs.find((t) => t.id === tab)!;
-  const selected = confession ? CONFESSION_ORNAMENT : current.items.find((o) => o.id === ornament) ?? tabs.flatMap((t) => t.items).find((o) => o.id === ornament);
+  const selected = current.items.find((o) => o.id === ornament) ?? tabs.flatMap((t) => t.items).find((o) => o.id === ornament);
 
   return (
     <main className="relative min-h-dvh" style={themeBackground(tree.theme)}>
@@ -116,7 +113,7 @@ export default function WriteForm({ tree }: { tree: Tree }) {
               <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-white text-2xl shadow" style={{ background: selected?.bg }}>
                 {egged?.effect === "cry" ? "😭" : selected?.emoji}
               </span>
-              <button className="text-sm text-slate-500 underline" onClick={() => setStep(1)} disabled={confession}>장식 바꾸기</button>
+              <button className="text-sm text-slate-500 underline" onClick={() => setStep(1)}>장식 바꾸기</button>
             </div>
 
             <label className="text-sm font-bold">보내는 사람 <span className="font-normal text-slate-500">(비워두면 &quot;익명의 산타&quot;)</span></label>
@@ -140,8 +137,8 @@ export default function WriteForm({ tree }: { tree: Tree }) {
             {!isProfessor && (
               <label className={`mt-4 flex cursor-pointer items-center justify-between rounded-2xl p-3 ${confession ? "bg-pink-100" : "bg-slate-50"}`}>
                 <span>
-                  <span className="font-bold">💘 고백 편지로 보내기</span>
-                  <span className="block text-xs text-slate-500">하트 장식으로 달리고, 크리스마스 전까지 이름이 ???로 가려져요</span>
+                  <span className="font-bold">💘 이 편지는 고백이에요</span>
+                  <span className="block text-xs text-slate-500">트리에는 일반 장식으로 보여서 아무도 몰라요. 크리스마스에 편지를 열 때만 주인에게 &lsquo;고백 편지&rsquo;로 표시되고, 홈 화면 고백 카운터에 집계돼요.</span>
                 </span>
                 <input type="checkbox" className="h-5 w-5 accent-pink-500" checked={confession} onChange={(e) => setConfession(e.target.checked)} />
               </label>

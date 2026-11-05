@@ -37,15 +37,6 @@ export const ORNAMENTS: Ornament[] = [
   { id: "grad", emoji: "🎓", label: "졸업 기원", bg: "#ece8ff", group: "postech" },
 ];
 
-// 고백 편지 전용 장식 (고백 토글 시 자동 지정)
-export const CONFESSION_ORNAMENT: Ornament = {
-  id: "confession",
-  emoji: "💘",
-  label: "고백",
-  bg: "#ffd6e7",
-  group: "secret",
-};
-
 // 교수님 트리 전용 장식
 export const PROFESSOR_ORNAMENTS: Ornament[] = [
   { id: "chalk", emoji: "🖍️", label: "분필", bg: "#f4f4f4", group: "secret" },
@@ -80,13 +71,11 @@ export function deptOrnament(deptId: string | null | undefined): Ornament | null
 }
 
 export function findOrnament(id: string): Ornament {
-  if (id === CONFESSION_ORNAMENT.id) return CONFESSION_ORNAMENT;
   if (id.startsWith("dept-")) return deptOrnament(id.slice(5)) ?? ORNAMENTS[0];
   return [...ORNAMENTS, ...PROFESSOR_ORNAMENTS].find((o) => o.id === id) ?? ORNAMENTS[0];
 }
 
 export function isValidOrnament(id: string): boolean {
-  if (id === CONFESSION_ORNAMENT.id) return true;
   if (id.startsWith("dept-")) return DEPARTMENTS.some((d) => `dept-${d.id}` === id);
   return [...ORNAMENTS, ...PROFESSOR_ORNAMENTS].some((o) => o.id === id);
 }
@@ -102,14 +91,11 @@ export const THEMES: Record<ThemeId, { name: string; bg: string; tree: [string, 
   chalkboard: { name: "칠판 (교수님)", bg: "linear-gradient(#20372b, #2f4d3c)", tree: ["#e9efe9", "#f3f6f3", "#ffffff"], text: "#f3f6f3" },
 };
 
-export const USER_THEMES: ThemeId[] = ["classic", "snow", "pink", "night", "postech"];
-
 // 숨은 키워드 이스터에그
-export const KEYWORD_EGGS: { words: string[]; effect: "confetti" | "cry" | "aplus" | "snow" | "heart"; message: string }[] = [
+export const KEYWORD_EGGS: { words: string[]; effect: "confetti" | "cry" | "aplus" | "heart"; message: string }[] = [
   { words: ["종강"], effect: "confetti", message: "🎉 종강 축하해요! 폭죽 발사!" },
   { words: ["과제", "레포트", "랩실"], effect: "cry", message: "😭 장식도 과제 생각에 울고 있어요..." },
   { words: ["학점", "a+", "에이쁠"], effect: "aplus", message: "🅰️ A+ 기운을 담아 보냈어요!" },
-  { words: ["눈", "눈사람"], effect: "snow", message: "❄️ 포항에도 눈이 올까요?" },
   { words: ["사랑해", "좋아해", "보고싶"], effect: "heart", message: "💗 두근두근... 마음이 전해지길!" },
 ];
 

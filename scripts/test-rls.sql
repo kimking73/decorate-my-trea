@@ -27,8 +27,8 @@ insert into public.letters (tree_id, ornament_type, nickname, content, is_confes
 \echo '--- 공개 전: 주인 SELECT (0 이어야 함)'
 set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000a';
 select count(*) from public.letters;
-\echo '--- 공개 전: 장식 RPC (고백 닉네임 ??? 이어야 함)'
-select ornament_type, nickname, is_confession from public.get_ornaments('10000000-0000-0000-0000-000000000001');
+\echo '--- 공개 전: 장식 RPC (고백 여부 컬럼이 없어야 함, 닉네임 그대로)'
+select * from public.get_ornaments('10000000-0000-0000-0000-000000000001');
 select * from public.get_stats();
 \echo '--- anon 직접 INSERT (실패해야 함)'
 reset role; set role anon;
@@ -52,8 +52,8 @@ exception when insufficient_privilege then raise notice 'ok: is_admin locked'; e
 \echo '=== 공개 시각을 과거로 ==='
 reset role; update public.app_config set reveal_at = now() - interval '1 minute';
 set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000a';
-\echo '--- 공개 후: 주인 SELECT (2)'
-select nickname, content from public.letters;
+\echo '--- 공개 후: 주인 SELECT (2, 고백 여부 포함)'
+select nickname, content, is_confession from public.letters;
 \echo '--- 공개 후: 다른 유저 SELECT (0)'
 set request.jwt.sub = '00000000-0000-0000-0000-00000000000b';
 select count(*) from public.letters;

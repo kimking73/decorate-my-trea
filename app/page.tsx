@@ -2,24 +2,27 @@ import Link from "next/link";
 import Countdown from "@/components/Countdown";
 import Snow from "@/components/Snow";
 import TreeScene from "@/components/TreeScene";
-import { demoMode, getMyTree, getRevealAt, getSpecialTrees, getStats, getTopTrees, getUser } from "@/lib/data";
+import { demoMode, getMyTree, getRevealAt, getSpecialTrees, getStats, getUser } from "@/lib/data";
+import { TOTAL_BULBS, getSeason, parseForcedDday } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
-const PREVIEW = ["ball-red", "jigok", "confession", "star", "coffee", "aplus", "gift", "stairs77", "snowman", "gwamegi"].map(
-  (t, i) => ({ id: `p${i}`, ornament_type: t, nickname: t === "confession" ? "???" : ["룸메", "동기", "익명의 산타", "과대", "조원"][i % 5], is_confession: t === "confession" }),
+const PREVIEW = ["ball-red", "jigok", "sock", "star", "coffee", "aplus", "gift", "stairs77", "snowman", "gwamegi"].map(
+  (t, i) => ({ id: `p${i}`, ornament_type: t, nickname: ["룸메", "동기", "익명의 산타", "과대", "조원"][i % 5] }),
 );
 
-export default async function Home() {
-  const [user, stats, special, top, revealAt] = await Promise.all([
-    getUser(), getStats(), getSpecialTrees(), getTopTrees(), getRevealAt(),
+export default async function Home({ searchParams }: { searchParams: Promise<{ dday?: string }> }) {
+  const { dday } = await searchParams;
+  const [user, stats, special, revealAt] = await Promise.all([
+    getUser(), getStats(), getSpecialTrees(), getRevealAt(),
   ]);
+  const season = getSeason(Date.now(), revealAt, parseForcedDday(dday, demoMode || process.env.NODE_ENV !== "production"));
   const myTree = user ? await getMyTree(user.id) : null;
   const cta = myTree ? { href: `/t/${myTree.slug}`, label: "🎄 내 트리 보러가기" } : user ? { href: "/create", label: "🎄 내 트리 만들기" } : { href: "/login?next=/create", label: "🎄 내 트리 만들기" };
 
   return (
     <main className="relative min-h-dvh overflow-x-hidden" style={{ background: "linear-gradient(#0b2036, #1c4566 55%, #2b5d7d)" }}>
-      <Snow />
+      <Snow density={Math.round(30 + 70 * season.progress)} />
       <div className="relative z-10 mx-auto flex max-w-md flex-col items-center px-4 pb-12 pt-8 text-center">
         <p className="text-sm tracking-widest opacity-80">POSTECH CHRISTMAS 2026</p>
         <h1 className="font-display mt-1 text-[40px] leading-tight">포스텍 트리 🎄</h1>
@@ -30,8 +33,14 @@ export default async function Home() {
         <div className="mt-5"><Countdown target={revealAt.toISOString()} /></div>
 
         <div className="mt-4 w-full max-w-[300px]">
-          <TreeScene theme="classic" ornaments={PREVIEW} lockedIcons />
+          <TreeScene theme="classic" ornaments={PREVIEW} season={season} lockedIcons />
         </div>
+
+        <p className="mt-1 text-xs opacity-80">
+          {season.revealed ? "🎄 메리 크리스마스! 모든 전구가 켜졌어요"
+            : season.started ? `💡 전구 ${season.bulbsOn}/${TOTAL_BULBS}개 켜짐 · 크리스마스까지 매일 하나씩 켜져요`
+            : "💡 12월 1일부터 트리에 불이 하나씩 켜지고 눈이 쌓여요"}
+        </p>
 
         <Link href={cta.href} className="btn btn-primary mt-4 w-full text-lg">{cta.label}</Link>
         {demoMode && <Link href="/t/demo" className="btn btn-light mt-3 w-full">👀 데모 트리 구경하기</Link>}
@@ -42,7 +51,7 @@ export default async function Home() {
           <p className="font-display mt-1 text-xl">
             지금까지 총 <span className="text-3xl text-pink-200">{stats.confession_count.toLocaleString()}</span>명이 고백하였습니다
           </p>
-          <p className="mt-1 text-xs opacity-80">편지를 쓸 때 &lsquo;고백 편지&rsquo;를 켜면 하트 장식으로 달려요. 누가 고백했는지는 비밀!</p>
+          <p className="mt-1 text-xs opacity-80">편지를 쓸 때 &lsquo;이 편지는 고백이에요&rsquo;를 체크하면 여기에만 집계돼요.<br />트리에서는 티가 안 나니, 누가 누구에게 고백했는지는 크리스마스까지 비밀!</p>
         </section>
 
         {/* 통계 */}
@@ -74,23 +83,6 @@ export default async function Home() {
           </section>
         )}
 
-        {/* 랭킹 */}
-        {top.length > 0 && (
-          <section className="mt-8 w-full text-left">
-            <h2 className="font-display mb-2 text-xl">🏆 장식이 가장 많은 트리</h2>
-            <ol className="flex flex-col gap-2">
-              {top.map((t, i) => (
-                <li key={t.slug}>
-                  <Link href={`/t/${t.slug}`} className="flex items-center justify-between rounded-2xl bg-white/12 px-4 py-3">
-                    <span><span className="font-display mr-2">{["🥇", "🥈", "🥉", "4", "5"][i]}</span>{t.title} <span className="text-xs opacity-75">· {t.owner_name}</span></span>
-                    <span className="font-display">{t.letter_count}개</span>
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-
         <section className="mt-8 w-full rounded-3xl bg-white/10 p-5 text-left text-sm leading-6">
           <h2 className="font-display mb-2 text-lg">🎁 이렇게 즐겨요</h2>
           <ol className="list-decimal space-y-1 pl-5">
@@ -99,7 +91,7 @@ export default async function Home() {
             <li>친구들은 로그인 없이 익명으로 편지를 달아요.</li>
             <li>12월 25일 0시, 편지가 열려요! 🎅</li>
           </ol>
-          <p className="mt-3 text-xs opacity-70">psst... 트리 꼭대기 별을 마구 눌러보세요. 편지에 특별한 단어를 쓰면 무슨 일이 생길지도?</p>
+          <p className="mt-3 text-xs opacity-70">psst... 트리 꼭대기 별을 마구 눌러보세요. 트리 옆 포닉스도 한번 눌러보고, 편지에 특별한 단어를 쓰면 무슨 일이 생길지도?</p>
         </section>
 
         <footer className="mt-8 text-xs opacity-60">Made with ❤️ by POSTECH students · {user ? <Link href="/me" className="underline">내 페이지</Link> : <Link href="/login" className="underline">로그인</Link>}</footer>

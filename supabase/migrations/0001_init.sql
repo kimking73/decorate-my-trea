@@ -58,7 +58,6 @@ create table if not exists public.trees (
   department text,
   kind text not null default 'user' check (kind in ('user', 'professor', 'special')),
   description text check (char_length(description) <= 200),
-  show_in_ranking boolean not null default true,
   claim_code text unique,
   created_at timestamptz not null default now()
 );
@@ -105,7 +104,7 @@ drop policy if exists "trees readable" on public.trees;
 create policy "trees readable" on public.trees for select using (true);
 revoke select on public.trees from anon, authenticated;
 grant select (id, owner_id, slug, title, owner_name, theme, department, kind, description,
-              show_in_ranking, created_at) on public.trees to anon, authenticated;
+              created_at) on public.trees to anon, authenticated;
 
 drop policy if exists "create own tree" on public.trees;
 create policy "create own tree" on public.trees for insert to authenticated
@@ -116,7 +115,7 @@ create policy "update own tree" on public.trees for update to authenticated
   using (owner_id = auth.uid() or public.is_admin())
   with check (owner_id = auth.uid() or public.is_admin());
 revoke update on public.trees from anon, authenticated;
-grant update (title, owner_name, theme, department, description, show_in_ranking)
+grant update (title, owner_name, theme, department, description)
   on public.trees to authenticated;
 
 drop policy if exists "delete own tree" on public.trees;
@@ -143,13 +142,11 @@ grant select (id, tree_id, ornament_type, nickname, content, is_confession, repo
 -- RPC (본문 없이 장식 정보만 / 집계만 반환)
 -- =========================================================
 
--- 트리에 달린 장식 목록 (본문 제외). 고백 편지는 공개 전까지 닉네임을 가린다.
+-- 트리에 달린 장식 목록 (본문·고백 여부 제외 — 주인도 공개 전엔 고백 편지 존재를 알 수 없음)
 create or replace function public.get_ornaments(p_tree_id uuid)
-returns table (id uuid, ornament_type text, nickname text, is_confession boolean, created_at timestamptz)
+returns table (id uuid, ornament_type text, nickname text, created_at timestamptz)
 language sql stable security definer set search_path = public as $$
-  select l.id, l.ornament_type,
-         case when l.is_confession and not public.is_revealed() then '???' else l.nickname end,
-         l.is_confession, l.created_at
+  select l.id, l.ornament_type, l.nickname, l.created_at
   from public.letters l
   where l.tree_id = p_tree_id and not l.hidden
   order by l.created_at asc;
@@ -164,18 +161,6 @@ language sql stable security definer set search_path = public as $$
     (select count(*) from public.letters where is_confession and not hidden),
     (select count(*) from public.letters
       where not hidden and created_at >= date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul');
-$$;
-
-create or replace function public.get_top_trees(p_limit int default 5)
-returns table (slug text, title text, owner_name text, kind text, letter_count bigint)
-language sql stable security definer set search_path = public as $$
-  select t.slug, t.title, t.owner_name, t.kind, count(l.id) as letter_count
-  from public.trees t
-  join public.letters l on l.tree_id = t.id and not l.hidden
-  where t.show_in_ranking and t.kind = 'user'
-  group by t.id
-  order by letter_count desc, min(l.created_at) asc
-  limit least(greatest(p_limit, 1), 20);
 $$;
 
 -- 트리 주인이 편지를 신고(숨김) — 공개 후에만 의미 있음
@@ -245,5 +230,5 @@ revoke all on function public.report_letter(uuid), public.admin_resolve_report(u
   public.admin_set_claim_code(uuid, text), public.claim_tree(text) from anon, public;
 grant execute on function public.report_letter(uuid), public.admin_resolve_report(uuid, boolean),
   public.admin_set_claim_code(uuid, text), public.claim_tree(text) to authenticated;
-grant execute on function public.get_ornaments(uuid), public.get_stats(), public.get_top_trees(int),
+grant execute on function public.get_ornaments(uuid), public.get_stats(),
   public.is_revealed() to anon, authenticated;

@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import TreeView from "@/components/TreeView";
-import { demoMode, getLetters, getOrnaments, getRevealAt, getStats, getTreeBySlug, getUser } from "@/lib/data";
+import { demoMode, getLetters, getOrnaments, getRevealAt, getTreeBySlug, getUser } from "@/lib/data";
+import { getSeason, parseForcedDday } from "@/lib/season";
 import { SITE_URL } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
-type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ added?: string; egg?: string }> };
+type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ added?: string; egg?: string; dday?: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
@@ -19,15 +20,16 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function TreePage({ params, searchParams }: Params) {
   const { slug } = await params;
-  const { added, egg } = await searchParams;
+  const { added, egg, dday } = await searchParams;
   const tree = await getTreeBySlug(slug);
   if (!tree) notFound();
 
-  const [user, ornaments, revealAt, stats] = await Promise.all([
-    getUser(), getOrnaments(tree.id), getRevealAt(), getStats(),
-  ]);
+  const [user, ornaments, revealAt] = await Promise.all([getUser(), getOrnaments(tree.id), getRevealAt()]);
   const isOwner = !!user && user.id === tree.owner_id;
   const revealed = Date.now() >= revealAt.getTime();
+  // ?dday=N 은 연출 미리보기 전용 (개발/데모 모드). 편지 열람 권한에는 영향 없음.
+  const forced = parseForcedDday(dday, demoMode || process.env.NODE_ENV !== "production");
+  const season = getSeason(Date.now(), revealAt, forced);
   // 서버에서도 한 번 더: 주인 + 공개 이후에만 본문 요청 (DB RLS 가 최종 방어선)
   const letters = isOwner && revealed ? await getLetters(tree.id) : null;
 
@@ -38,10 +40,9 @@ export default async function TreePage({ params, searchParams }: Params) {
       letters={letters}
       isOwner={isOwner}
       isLoggedIn={!!user}
-      revealed={revealed}
+      season={season}
       revealAt={revealAt.toISOString()}
       shareUrl={`${SITE_URL}/t/${tree.slug}`}
-      confessionCount={stats.confession_count}
       justAdded={added === "1"}
       egg={egg}
       demo={demoMode}
