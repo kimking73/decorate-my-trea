@@ -29,6 +29,146 @@
 - [x] 트리 화면, 편지 작성, 편지 모달, 공유, D-day 연출, 이스터에그
 - [x] Supabase 없이 도는 데모 모드 (`/t/demo`, `/t/prof-demo`)
 
+## 기술 스택 · 작업 가이드 (AI가 작업 전에 읽을 것)
+> 이 절은 타임라인 마커 밖에 있어 동기화로 지워지지 않습니다. 결정의 기준은 `spec.md` 1.1(스택)·2장(역할·계약)·4~5장(규칙·API·DB)이고, 바뀌면 spec.md를 먼저 고친 뒤 같은 커밋에서 이 절도 맞춥니다. (2026-11-14 코드 기준)
+
+### 한눈에 보기
+```
+인앱 브라우저(인스타·카톡) ─▶ Vercel: Next.js 15 App Router (서버 컴포넌트 SSR)
+   ├─ 페이지 조회: lib/data.ts ─▶ Supabase(anon key + 사용자 세션 쿠키) ─▶ Postgres RLS
+   ├─ 폼 제출:   app/actions.ts (서버 액션) ─▶ 같은 세션 클라이언트 ─▶ RLS
+   ├─ 편지 작성: components/WriteForm.tsx ─fetch─▶ app/api/letters (service role) ─▶ letters INSERT
+   └─ 로그인:    LoginButtons(브라우저 클라이언트) ─▶ 카카오·구글 OAuth ─▶ /auth/callback ─▶ 세션 쿠키
+```
+별도 백엔드 서버는 없습니다. 서버 로직은 Next.js 서버 컴포넌트·서버 액션·Route Handler와 Postgres 함수(RPC)가 전부입니다.
+
+### 버전 (`package.json`)
+| 구분 | 패키지 | 버전 | 비고 |
+| --- | --- | --- | --- |
+| 프레임워크 | `next` | ^15.5 | App Router. `params`·`searchParams`·`cookies()`는 **Promise**라 `await` 필요 |
+| UI | `react`, `react-dom` | ^19.3 | 폼은 `useActionState` + 서버 액션 |
+| 언어 | `typescript` | ^6.0 | `strict`, 경로 별칭 `@/*` → 루트. `scripts/`는 타입 검사 제외 |
+| 스타일 | `tailwindcss`, `@tailwindcss/postcss` | ^4.3 | v4: `tailwind.config` 없음. 토큰은 `app/globals.css`의 `@theme` |
+| DB·인증 | `@supabase/ssr` ^0.12, `@supabase/supabase-js` ^2.118 | | 서버·브라우저 클라이언트 |
+| 연출 | `canvas-confetti` ^1.9 | | `WriteForm.tsx`에서 사용 |
+| 이미지 | `html-to-image` ^1.11 | | `ShareButtons.tsx`에서 동적 `import()` |
+| 가드 | `server-only` | | 서버 전용 모듈 첫 줄에 `import "server-only"` |
+| 제거 예정 | `framer-motion` | ^14.9 | 설치만 되어 있고 미사용 → **F3**에서 제거. 새로 쓰지 말 것 |
+| 린트 | `eslint` ^9 + `eslint-config-next` | | flat config(`eslint.config.mjs`), `next/core-web-vitals` + `next/typescript`, `scripts/**` 제외 |
+
+로컬에 `node_modules`가 없으면 `npm install`부터 합니다. 새 의존성은 spec.md 1.1에 있는 것만 추가합니다.
+
+### 디렉터리와 파일 역할 (소유는 spec.md 2.1)
+| 경로 | 역할 | 실행 위치 |
+| --- | --- | --- |
+| `app/layout.tsx` | 루트 레이아웃, `metadata`·`viewport`, 폰트 (`<link>` → **F3**에서 `next/font/google`) | 서버 |
+| `app/page.tsx` | 홈: 카운트다운·통계(`getStats`)·특별 트리 목록 | 서버 |
+| `app/login/page.tsx` · `app/create` · `app/me` · `app/admin` | 로그인 / 트리 생성·이름 변경 / 내 페이지 / 관리자 | 서버 (+ 폼 컴포넌트는 클라이언트) |
+| `app/t/[slug]/page.tsx` | 트리 보기. 주인이고 공개 이후면 `getLetters`(UI 분기일 뿐, 권한은 RLS), 아니면 장식만. `?dday=N`(개발·데모만), `?added`, `?egg` | 서버 → `TreeView` |
+| `app/t/[slug]/write/page.tsx` | 장식 선택 + 편지 작성 (`WriteForm`) | 서버 → 클라이언트 |
+| `app/actions.ts` | `"use server"` 서버 액션: `saveMyTree`, `claimTree`, `adminCreateSpecialTree`, `adminIssueClaimCode`, `adminResolve`. 반환 타입 `FormState = { error?: string } \| undefined`, 성공 시 `redirect()` | 서버 |
+| `app/api/letters/route.ts` | `POST` 익명 편지 저장 (로그인 불필요, service role) | 서버 |
+| `app/auth/callback/route.ts` | OAuth `code` → 세션 교환 후 `next`로 이동 (`/`로 시작하는 경로만 허용, 기본 `/me`) | 서버 |
+| `app/auth/signout/route.ts` | `POST` 로그아웃 → `/` (303) | 서버 |
+| `middleware.ts` | 매 요청 세션 쿠키 갱신 (`auth.getUser()`). `api/`·정적 파일·이미지는 제외. 환경변수 없으면 통과 | Edge |
+| `lib/data.ts` | `server-only` 조회 함수 + 타입 `Tree`·`OrnamentRow`·`Stats` + 데모 데이터 + `demoMode` | 서버 |
+| `lib/supabase/server.ts` | `isConfigured`, `createClient()` (세션·RLS), `createAdminClient()` (service role) | 서버 |
+| `lib/supabase/client.ts` | `"use client"` 브라우저 클라이언트 (로그인 버튼, 편지 신고) | 브라우저 |
+| `lib/constants.ts` | `REVEAL_AT`(UI 표시용), `SITE_NAME`·`SITE_URL`, `ORNAMENTS`·`PROFESSOR_ORNAMENTS`·`DEPARTMENTS`·`THEMES`, `findOrnament`·`isValidOrnament`·`deptOrnament` | 공용 |
+| `lib/season.ts` | `getSeason(now, revealAt, forcedDaysLeft)` → 전구 수(12/1~12/24 하루 1개, 총 24)·D-day, `parseForcedDday` | 공용 |
+| `lib/moderation.ts` | `hasBannedWord()` 금칙어 | 서버 |
+| `components/*.tsx` | 전부 `"use client"`. 트리 화면(`TreeScene`·`TreeView`·`WriteForm`·`LetterModal`·`Snow`·`Countdown`·`ShareButtons`)과 폼(`TreeForm`·`LoginButtons`·`ClaimForm`·`AdminCreateForm`) | 브라우저 |
+| `supabase/migrations/0001_init.sql` | 스키마·RLS·RPC 전체. **SQL Editor로 적용** (Supabase CLI 안 씀) | DB |
+| `scripts/test-rls.sql` | RLS 테스트. `auth` 스키마를 지우고 다시 만들므로 **빈 로컬 Postgres 전용** | DB |
+| `scripts/sync-plan.mjs` | 타임라인 → plan.md 작업 목록 생성 | Node |
+| `public/` | 정적 에셋. 장식 SVG는 `public/ornaments/<id>.svg` (**C4**) | 정적 |
+
+### 데이터 접근 규칙 (어떤 클라이언트를 어디서 쓰나)
+| 상황 | 사용 | 이유 |
+| --- | --- | --- |
+| 서버 컴포넌트에서 조회 | `lib/data.ts`의 함수 (내부에서 `createClient()`) | RLS가 사용자 권한대로 걸러 줌. 페이지에서 Supabase를 직접 부르지 않음 |
+| 폼 제출·변경 | `app/actions.ts`의 서버 액션 (`createClient()`) | 권한은 RLS·RPC가 판단. 변경 후 `revalidatePath()` |
+| 익명 편지 저장 | `app/api/letters` → `createAdminClient()` | `letters`는 anon·authenticated에 INSERT 권한이 없음 (의도된 설계) |
+| 브라우저 | `lib/supabase/client.ts` — 로그인 시작(`LoginButtons`)과 주인의 편지 신고 `rpc("report_letter")`(`TreeView`)에서만 | 그 밖의 조회·변경은 브라우저에서 하지 않음 |
+
+- **`select('*')` 금지**: `trees`는 컬럼 단위 권한(`claim_code` 숨김)이라 `*`가 실패합니다. `TREE_COLUMNS` 상수를 씁니다. `letters`도 필요한 컬럼만 고릅니다 (`ip_hash`·`client_hash`는 절대 내보내지 않음).
+- **장식 목록은 RPC**: 방문자용 장식은 `rpc("get_ornaments", { p_tree_id })` — 본문·고백 여부를 뺀 `OrnamentRow`만 돌려줍니다. `letters`를 직접 조회해 장식을 만들지 않습니다.
+- **편지 본문**: `getLetters()`는 RLS가 "트리 주인 + `is_revealed()` + 숨김 아님"일 때만 행을 돌려주고, 그 외에는 빈 배열입니다. 앱 코드에서 날짜로 거르지 않습니다.
+- **기존 RPC**: `get_ornaments`, `get_stats`(트리·편지·고백·오늘 수), `report_letter`, `claim_tree(p_code)`→slug, `admin_set_claim_code`, `admin_resolve_report`, `admin_list_special_trees`, 헬퍼 `is_revealed()`·`is_admin()`. 관리자 함수는 함수 안에서 `is_admin()`을 확인합니다.
+- **새 `security definer` 함수**를 만들면 `revoke execute … from public, anon, authenticated` 후 필요한 역할에만 `grant`합니다 (spec.md 5.3).
+- **DB 테이블**: `app_config`(단일 행, `reveal_at`), `profiles`(가입 시 트리거로 생성, `is_admin`은 사용자가 못 바꿈), `trees`(일반 유저 1인 1트리, slug `^[a-z0-9-]{4,40}$`), `letters`. 컬럼은 spec.md 5.3.
+
+### 확정된 변경 (구현 전이면 현재 코드와 다름)
+| 항목 | 지금 코드 | 바뀔 모습 | 작업 |
+| --- | --- | --- | --- |
+| 편지 저장 | API가 `count` 쿼리 2번 후 INSERT (동시 요청에 취약), IP만 기준 | `0002_submit_letter.sql`: `letters.client_hash` + `submit_letter(...)` 한 트랜잭션. API는 검증 → `anon_id` 쿠키(없으면 발급, httpOnly) → IP·브라우저 ID를 `IP_HASH_SALT`로 sha256 → RPC 1회 → 제한 오류를 `429`로 변환 | **S11**, **S12** |
+| 작성 제한 | IP 기준 분당 5 · 트리당 하루 10 | 브라우저 분당 5 · 트리당 하루 10, IP 분당 30 (베타에서 조정) | **S11**, **S12** |
+| 폰트 | Google Fonts `<link>` | `next/font/google` (Jua, Gowun Dodum) → CSS 변수로 `@theme`에 연결 | **F3** |
+| 스토리 이미지 저장 | `html-to-image` → `<a download>` | 캡처는 그대로, `navigator.share({ files })` → 안 되면 이미지를 띄워 "길게 눌러 저장" | **C7** |
+| OG | `metadata.openGraph` 텍스트만 | 정적 `app/opengraph-image.png` 1장 | **F2** |
+| 장식 아이콘 | 이모지 (`Ornament.emoji`) | `public/ornaments/<id>.svg`, id는 그대로 | **C4** |
+| CI | 없음 | GitHub Actions: lint · typecheck · build + Postgres 서비스 컨테이너에서 `test-rls.sql` | **S13** |
+| 관측 | 없음 | Vercel Analytics, (선택) Sentry | **S15** |
+| 카카오톡 공유 | 링크 복사·Web Share | (선택) Kakao JS SDK, `lib/kakao.ts` | **C11** |
+
+`POST /api/letters`의 요청·응답 형식은 바뀌지 않습니다 (spec.md 5.2). **하지 않기로 한 것**은 쓰지 않습니다: Turnstile, `next/og`, Supabase CLI, Playwright, Firebase, 별도 백엔드, Upstash Redis, 애니메이션 라이브러리.
+
+### 인증
+- 공급자: 카카오·구글 OAuth (`signInWithOAuth`, `redirectTo` = `/auth/callback?next=…`). 코드에는 이메일 OTP 로그인도 있음 (`signInWithOtp`).
+- 세션은 쿠키. `middleware.ts`가 갱신하고, 서버 컴포넌트에서는 `createClient()`의 `setAll` 실패를 무시합니다 (정상).
+- 로그인 필요 페이지는 서버에서 `getUser()`로 확인 후 `redirect("/login?next=…")`.
+- 관리자 = `profiles.is_admin = true` (대시보드에서 직접 지정). 화면 분기는 `getProfile()`, 실제 권한은 RLS·RPC.
+- OAuth 앱 등록과 Supabase 리다이렉트 URL 설정은 사람이 합니다 (**S2**).
+
+### 데모 모드
+- `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_ANON_KEY`가 없으면 `isConfigured = false` → `demoMode = true`.
+- `lib/data.ts`가 데모 트리(`/t/demo`, `/t/prof-demo`)와 가짜 장식·통계를 돌려주고, `/api/letters`는 검증만 하고 `{ ok: true, demo: true }`.
+- 새 조회 함수를 만들면 **데모 분기(`if (!isConfigured) return …`)도 함께** 넣어 데모 모드가 깨지지 않게 합니다.
+- `?dday=N`(0~60)은 개발·데모 모드에서만 연출을 바꾸며 열람 권한과 무관합니다.
+
+### 환경변수 (`.env.local`, Vercel 동일 · 예시는 `.env.example`)
+| 이름 | 범위 | 쓰는 곳 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 공개 | `lib/supabase/*`, `middleware.ts` |
+| `SUPABASE_SERVICE_ROLE_KEY` | **서버 전용** | `createAdminClient()` → `app/api/**`에서만 |
+| `IP_HASH_SALT` | **서버 전용** | `/api/letters` 해시 |
+| `NEXT_PUBLIC_SITE_URL` | 공개 | `SITE_URL` (공유 링크, `metadataBase`) |
+| `NEXT_PUBLIC_REVEAL_AT` | 공개 | `REVEAL_AT` 표시용 기본값. 실제 공개는 DB `app_config.reveal_at` |
+| `NEXT_PUBLIC_KAKAO_JS_KEY`, `NEXT_PUBLIC_SENTRY_DSN` | 공개 | (선택) C11, S15 |
+
+`NEXT_PUBLIC_` 없는 값은 클라이언트 컴포넌트에서 읽지 않습니다. 키 값을 코드·문서·커밋에 넣지 않습니다.
+
+### 스타일·연출
+- Tailwind v4 유틸리티 + `app/globals.css`의 공용 클래스: `.card`, `.btn` / `.btn-primary` / `.btn-light` / `.btn-ghost`, `.font-display`.
+- 토큰(`@theme`): `--font-sans`(Gowun Dodum), `--font-display`(Jua), `--color-pine #1f7a45`, `--color-berry #c8102e`, `--color-cream #fff8ec`. 배경 `#0f2a44`. 디자인 확정(**D2**) 후 이 토큰을 바꿉니다.
+- 애니메이션은 CSS `@keyframes`(`sway`, `pop-in`, `twinkle`, `sleigh`, `cry`, `shake`)와 `canvas-confetti`만 씁니다.
+- 모바일 우선 (`min-h-dvh`, `maximumScale: 1`). 대부분 인앱 브라우저라 `download` 속성·팝업·서드파티 쿠키에 기대지 않습니다.
+- 장식 id(`lib/constants.ts`)는 DB에 저장되므로 **바꾸거나 지우지 않고** 추가만 합니다. 학과 장식은 `dept-<학과id>`.
+
+### 꼭 지킬 제약 (CLAUDE.md와 같음)
+1. 편지 본문 공개는 DB RLS(`is_revealed()`)가 강제합니다. 클라이언트 시간·`REVEAL_AT`으로 열람을 판단하지 않습니다.
+2. `is_confession`은 공개 전 어떤 응답에도 넣지 않습니다 (홈 집계 숫자만).
+3. `SUPABASE_SERVICE_ROLE_KEY`·`createAdminClient()`는 `app/api/**`의 서버 코드에서만.
+4. 프론트엔드는 `app/actions.ts`·`lib/data.ts`를 호출만 합니다. 함수 이름·인자·반환 타입이 바뀌면 spec.md 2.2부터 고칩니다.
+
+### 명령어와 검증
+```bash
+npm install          # 처음 한 번
+npm run dev          # http://localhost:3000 (환경변수 없으면 데모 모드)
+npm run build        # 커밋 전 필수
+npm run lint         # 커밋 전 필수
+npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
+```
+- DB를 바꿨으면: 빈 로컬 Postgres에서 `psql -d <빈DB> -f supabase/migrations/0001_init.sql`(및 새 마이그레이션) 적용 후 `psql -d <빈DB> -f scripts/test-rls.sql`. 새 권한 규칙은 `test-rls.sql`에 케이스를 추가합니다. **Supabase 프로젝트에는 절대 돌리지 않습니다.**
+- 화면을 바꿨으면 데모 모드에서 `/`, `/t/demo`, `/t/prof-demo`, `/t/demo?dday=7`, `/?dday=0`을 모바일 폭(375px)으로 확인합니다.
+- 자동 E2E 테스트는 없습니다. 실기기·인앱 브라우저 확인은 사람이 합니다 (**C1**, **C2**).
+
+### 작업 규칙 요약
+- 브랜치 `task/<번호>-<짧은-설명>`, 커밋 `<번호>: <요약>`. 푸시·PR은 요청받을 때만.
+- UI 문구·에러 메시지·주석은 한국어. 에러는 사용자에게 다정한 문장으로 (예: "루돌프가 숨 고르는 중이에요").
+- 사용자 입력은 서버에서 다시 자르고 검증합니다 (`trim().slice(0, n)`, DB `check` 제약과 같은 길이).
+- 마이그레이션은 새 번호 파일(`0002_…`)로 추가하고 기존 파일은 고치지 않습니다. 재실행해도 안전하게 `if not exists`·`create or replace`·`drop policy if exists`를 씁니다.
+
 ---
 
 <!-- timeline:start -->
