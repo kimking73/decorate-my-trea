@@ -1,6 +1,6 @@
 # 포스텍 트리 — 제품 스펙
 
-> 마지막 갱신: 2026-11-14 (기술 스택 확정 — 기존 코드 유지: 1.1, 2.1, 3, 4.1, 4.4, 5.2, 5.3, 6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
+> 마지막 갱신: 2026-11-14 (프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3, 4, 5, 6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
 
 ## 1. 개요
 - **목표**: POSTECH 학생들이 인스타그램에 자기 트리 링크를 올리고, 친구들이 **익명 편지**를 장식으로 달아주는 연말 이벤트. 편지는 **12/25 00:00 KST**에 열린다.
@@ -63,8 +63,11 @@
 | 역할 | 담당 | 한 줄 정의 |
 | --- | --- | --- |
 | 디자인 | (별명 미정) | 비주얼 아이덴티티, 일러스트, 아이콘, 공유 이미지 |
-| 프론트엔드 & 서버 | 와장창프론트엔드 | 페이지 구성·라우팅·로그인·데이터·API·DB·배포 |
+| 프론트엔드 | 와장창프론트엔드 | 트리 화면 밖의 페이지 구성·라우팅·폼 (홈, 로그인, 트리 생성, 내 페이지, 관리자), 디자인 반영, 메타데이터·OG·폰트 |
+| 서버 | (별명 미정) | DB·RLS·API·인증(OAuth)·미들웨어·배포·CI·모니터링 |
 | 클라이언트 | 람쥐썬더 | 트리 화면의 렌더링과 인터랙션 (애니메이션, D-day 연출, 이스터에그, 편지 작성·열람 UI, 공유) |
+
+**프론트엔드와 서버의 경계**: 프론트엔드는 `app/actions.ts`의 서버 액션과 `lib/data.ts`의 조회 함수를 **호출만** 하고, 쿼리·권한·RLS·API 구현은 서버가 맡는다. 화면에 필요한 데이터나 액션이 새로 생기면 프론트엔드가 2.2의 계약에 먼저 적고 서버에 요청한다.
 
 ### 2.1 소유 파일 맵
 누가 고쳐도 되지만, **소유자가 리뷰**한다.
@@ -73,9 +76,9 @@
 | --- | --- | --- |
 | 트리 화면 / 인터랙션 | 클라이언트 | `components/TreeScene.tsx`, `TreeView.tsx`, `WriteForm.tsx`, `LetterModal.tsx`, `Snow.tsx`, `Countdown.tsx`, `ShareButtons.tsx`, `lib/season.ts`, `app/globals.css` (애니메이션 부분) |
 | 카카오톡 공유 (선택) | 클라이언트 | `lib/kakao.ts` |
-| 페이지 / 폼 | 프론트&서버 | `app/**/page.tsx`, `app/layout.tsx`, `app/not-found.tsx`, `components/TreeForm.tsx`, `LoginButtons.tsx`, `ClaimForm.tsx`, `AdminCreateForm.tsx` |
-| 데이터 / 서버 | 프론트&서버 | `app/actions.ts`, `app/api/**`, `app/auth/**`, `middleware.ts`, `lib/data.ts`, `lib/supabase/**`, `lib/moderation.ts`, `supabase/migrations/**`, `scripts/test-rls.sql`, Vercel·Supabase 설정 |
-| CI / 관측 | 프론트&서버 | `.github/workflows/**`, (선택) `sentry.*.config.ts`, `instrumentation.ts` |
+| 페이지 / 폼 | 프론트엔드 | `app/**/page.tsx`, `app/layout.tsx`, `app/not-found.tsx`, `app/opengraph-image.png`, `components/TreeForm.tsx`, `LoginButtons.tsx`, `ClaimForm.tsx`, `AdminCreateForm.tsx`, `package.json` (프론트엔드 의존성) |
+| 데이터 / 서버 | 서버 | `app/actions.ts`, `app/api/**`, `app/auth/**`, `middleware.ts`, `lib/data.ts`, `lib/supabase/**`, `lib/moderation.ts`, `supabase/migrations/**`, `scripts/test-rls.sql`, Vercel·Supabase 설정 |
+| CI / 관측 | 서버 | `.github/workflows/**`, (선택) `sentry.*.config.ts`, `instrumentation.ts` |
 | 디자인 토큰 / 에셋 | 디자인 (코드 반영은 클라이언트) | `app/globals.css`의 `@theme`, `lib/constants.ts`의 `ORNAMENTS`·`THEMES`, `public/` |
 
 ### 2.2 팀 간 계약 (바꾸려면 이 문서를 먼저 수정하고 상대에게 공유)
@@ -83,6 +86,7 @@
 2. **컴포넌트 props**: `TreeScene` (`theme`, `ornaments`, `season`, `onOrnamentClick`, `starMode`, `crying`, `lockedIcons`), `TreeView` (`tree`, `ornaments`, `letters`, `isOwner`, `isLoggedIn`, `season`, `revealAt`, `shareUrl`, `justAdded`, `egg`, `demo`)
 3. **API**: 아래 5장 `POST /api/letters`
 4. **장식 ID**: `lib/constants.ts`의 장식 `id`는 DB `letters.ornament_type`에 저장된다. **이미 쓰인 id는 바꾸거나 지우지 않는다** (아이콘 이미지만 교체).
+5. **서버 액션·조회 함수** (프론트엔드 ↔ 서버): `app/actions.ts`의 함수 이름·인자·반환값, `lib/data.ts`의 조회 함수 이름·반환 타입
 
 ## 3. 사용자 흐름
 

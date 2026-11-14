@@ -1,14 +1,14 @@
 # 포스텍 트리 — 구현 계획
 
-> 마지막 갱신: 2026-11-14 (기술 스택 확정 — 기존 코드 유지, 스펙 1.1) · 📅 [타임라인 (간트 차트)](https://claude.ai/artifact/XZPtaxuvxWC3hkFvo1VyNi) · 스펙은 [`spec.md`](./spec.md). 끝낸 항목은 `[x]`로 바꾸고, 새 작업은 해당 역할 아래에 추가합니다.
-> 표기: 🎨 디자인 · 🛠 프론트엔드&서버 · 📱 클라이언트
+> 마지막 갱신: 2026-11-14 (프론트엔드·서버 역할 분리, 스펙 2장) · 📅 [타임라인 (간트 차트)](https://claude.ai/artifact/XZPtaxuvxWC3hkFvo1VyNi) · 스펙은 [`spec.md`](./spec.md). 끝낸 항목은 `[x]`로 바꾸고, 새 작업은 해당 역할 아래에 추가합니다.
+> 표기: 🎨 디자인 · 🖥 프론트엔드 · 🛠 서버 · 📱 클라이언트
 
 ## 마일스톤
 
 | 날짜 | 마일스톤 | 완료 기준 |
 | --- | --- | --- |
-| 11/19 (목) | **M1 기반** | 🎨 핵심 시안(트리·장식·편지지) 공유 · 🛠 Supabase 실서버 연결 + 로그인 동작 + `submit_letter()`로 편지 저장 + CI 통과 |
-| 11/26 (목) | **M2 디자인 반영 & 배포** | 📱 시안 반영 + 인앱 브라우저 이미지 저장 개선 · 🛠 Vercel 배포 URL(도메인)에서 전체 흐름 동작 |
+| 11/19 (목) | **M1 기반** | 🎨 핵심 시안(트리·장식·편지지) 공유 · 🛠 Supabase 실서버 연결 + 로그인 동작 + `submit_letter()`로 편지 저장 + CI 통과 · 🖥 실서버로 로그인 → 트리 생성 → 내 페이지 흐름 동작 |
+| 11/26 (목) | **M2 디자인 반영 & 배포** | 📱 시안 반영 + 인앱 브라우저 이미지 저장 개선 · 🖥 홈·로그인·내 페이지·관리자 디자인 반영 · 🛠 Vercel 배포 URL(도메인)에서 전체 흐름 동작 |
 | 11/29 (일) | **M3 베타** | 지인 10명 테스트 (인스타·카톡 인앱 브라우저, 학교망에서 작성 제한 확인 포함), 버그 수정 |
 | 12/1 (화) | **M4 오픈** | 인스타 공지, 전구 점등 시작 |
 | 12/24 (목) | 공개 리허설 | 테스트 트리로 `reveal_at` 조작해 열람 확인 후 원복 |
@@ -42,26 +42,36 @@
 - [ ] 에셋은 `public/ornaments/<id>.svg`, `public/ponix.svg` 처럼 **장식 id와 같은 파일명**으로 전달
 - [ ] 색·폰트는 토큰 이름으로 전달 (`--color-berry` 등, `app/globals.css` `@theme`)
 
-## 🛠 프론트엔드 & 서버 · 와장창프론트엔드
+## 🖥 프론트엔드 · 와장창프론트엔드
+### M1 (~11/19)
+- [ ] 🛠 서버와 경계 합의: 화면별로 필요한 `app/actions.ts` 서버 액션·`lib/data.ts` 조회 함수 목록을 스펙 2.2-5에 정리
+- [ ] 🛠 서버가 준 `.env.local`로 실서버 연결 → 로그인 → 트리 생성 → 내 페이지 화면 흐름 확인 (오류 문구·로딩 상태 포함)
+- [ ] `framer-motion` 의존성 제거
+### M2 (~11/26)
+- [ ] 홈 / 로그인 / 트리 생성 / 내 페이지 / 관리자 페이지에 🎨 디자인 반영
+- [ ] 폰트를 `next/font/google`로 교체 (`app/layout.tsx`)
+- [ ] 정적 OG 이미지 적용 (`app/opengraph-image.png`, 🎨 시안) → 카톡·인스타 링크 미리보기 확인
+- [ ] 페이지 메타데이터 정리 (`app/layout.tsx`, `app/t/[slug]/page.tsx`의 `generateMetadata`)
+### M3~
+- [ ] 베타 피드백 중 페이지·폼 버그 수정
+- [ ] 접근성: 폼 라벨·에러 문구·키보드 이동 (홈·로그인·내 페이지·관리자)
+
+## 🛠 서버 · (별명 미정)
 ### M1 (~11/19)
 - [ ] Supabase 프로젝트 생성, SQL Editor로 `supabase/migrations/0001_init.sql` 적용
 - [ ] 마이그레이션 `0002_submit_letter.sql` 작성·적용: `letters.client_hash` 컬럼·인덱스, `submit_letter()` 함수 + **`revoke execute ... from public, anon, authenticated`** + `grant execute ... to service_role` — 스펙 5.3
 - [ ] `scripts/test-rls.sql`에 `service_role` 역할 생성, `\i supabase/migrations/0002_submit_letter.sql`과 테스트 추가 (anon·authenticated는 `submit_letter()` 호출 실패, service_role은 성공, 제한 초과 시 거부) → 빈 Postgres DB에서 실행 (스크립트가 `auth` 스키마를 지우므로 **Supabase DB에서 실행 금지**)
 - [ ] `/api/letters` 수정: `anon_id` 쿠키 발급, `client_hash` 계산, 기존 개수 조회 + INSERT를 `submit_letter()` 1회 호출로 교체. 요청·응답 형식은 그대로 — 스펙 4.4, 5.2
 - [ ] 카카오 개발자 앱 + 구글 OAuth 등록, Supabase Provider 설정 (카카오 "Allow users without an email")
-- [ ] `.env.local` 구성 → 로컬에서 실제 로그인 → 트리 생성 → 편지 작성까지 확인
+- [ ] `.env.local` 구성 → 로컬에서 실제 로그인 → 트리 생성 → 편지 작성까지 확인, 🖥 프론트엔드·📱 클라이언트에 환경변수 전달 (비밀 키 제외)
 - [ ] GitHub Actions: lint · typecheck · build + Postgres 서비스 컨테이너에서 `test-rls.sql` (실패하면 머지 금지)
-- [ ] `framer-motion` 의존성 제거
 ### M2 (~11/26)
 - [ ] 도메인 결정·구매 → Vercel 연결
 - [ ] Vercel 배포, 환경변수 (스펙 1.1 표), PR Preview 배포 확인
 - [ ] Supabase Redirect URL에 배포 주소 추가
-- [ ] 정적 OG 이미지 적용 (`app/opengraph-image.png`, 🎨 시안)
-- [ ] 폰트를 `next/font/google`로 교체 (`app/layout.tsx`)
 - [ ] Vercel Analytics 켜기 · (선택) Sentry 연동
 - [ ] (선택, 📱 카카오 공유를 할 경우) Kakao Developers에 사이트 도메인 등록, JS 키 발급
 - [ ] 관리자 계정 지정, 교수님 트리 생성 → 초대 코드 전달
-- [ ] 홈 / 로그인 / me / admin 페이지에 디자인 반영
 ### M3~
 - [ ] 학교망·기숙사 와이파이에서 IP 공유 여부 확인 → 작성 제한 숫자 확정 (스펙 4.4)
 - [ ] 베타 피드백 반영 (금칙어 보강, rate limit 조정). 도배가 생기면 Turnstile 추가 검토
@@ -86,8 +96,9 @@
 - [ ] 베타 버그 수정
 
 ## 공통
+- [ ] 서버 담당자 별명 정하기 (스펙 2장, 타임라인 담당자 칸)
 - [x] 기술 스택 확정 (11/14) — 기존 코드 유지 + 위험 3가지 수정, 보류 항목은 스펙 1.1·6장
-- [ ] 버그·요청은 GitHub Issues에 등록, 라벨 `design` / `server` / `client`
+- [ ] 버그·요청은 GitHub Issues에 등록, 라벨 `design` / `frontend` / `server` / `client`
 - [ ] 작업은 PR로 올리고 Vercel Preview 링크를 폰으로 확인한 뒤 머지 (CI 통과 필수)
 - [ ] 베타 테스터 모집 (11/29)
 - [ ] 오픈 공지 인스타 게시물·스토리 (🎨 이미지, 문구는 함께)
