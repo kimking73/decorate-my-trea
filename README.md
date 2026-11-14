@@ -1,6 +1,6 @@
 # 🎄 포스텍 트리
 
-> 📄 팀 문서: [spec.md](./spec.md) (제품 스펙·역할 분담) · [plan.md](./plan.md) (일정·체크리스트) · [CLAUDE.md](./CLAUDE.md) (작업 규칙) · [타임라인](https://claude.ai/artifact/FXX6NxUqoJ5ySB9a8FyX61)
+> 📄 팀 문서: [spec.md](./spec.md) (제품 스펙·역할 분담) · [plan.md](./plan.md) (일정·체크리스트) · [CLAUDE.md](./CLAUDE.md) (작업 규칙) · [타임라인](https://claude.ai/artifact/XZPtaxuvxWC3hkFvo1VyNi)
 
 POSTECH 학생들이 서로의 크리스마스 트리에 **익명 편지**를 장식으로 달아주고, **12월 25일 0시(KST)**에 편지가 열리는 웹페이지입니다.
 
