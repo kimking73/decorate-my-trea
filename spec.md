@@ -1,6 +1,6 @@
 # 포스텍 트리 — 제품 스펙
 
-> 마지막 갱신: 2026-11-14 (프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3, 4, 5, 6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
+> 마지막 갱신: 2026-11-14 (작업 관리 규칙 추가: 7장 · 프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3~6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
 
 ## 1. 개요
 - **목표**: POSTECH 학생들이 인스타그램에 자기 트리 링크를 올리고, 친구들이 **익명 편지**를 장식으로 달아주는 연말 이벤트. 편지는 **12/25 00:00 KST**에 열린다.
@@ -79,6 +79,7 @@
 | 페이지 / 폼 | 프론트엔드 | `app/**/page.tsx`, `app/layout.tsx`, `app/not-found.tsx`, `app/opengraph-image.png`, `components/TreeForm.tsx`, `LoginButtons.tsx`, `ClaimForm.tsx`, `AdminCreateForm.tsx`, `package.json` (프론트엔드 의존성) |
 | 데이터 / 서버 | 서버 | `app/actions.ts`, `app/api/**`, `app/auth/**`, `middleware.ts`, `lib/data.ts`, `lib/supabase/**`, `lib/moderation.ts`, `supabase/migrations/**`, `scripts/test-rls.sql`, Vercel·Supabase 설정 |
 | CI / 관측 | 서버 | `.github/workflows/**`, (선택) `sentry.*.config.ts`, `instrumentation.ts` |
+| 작업 관리 | 공통 | `plan.md`, `scripts/sync-plan.mjs` (7장) |
 | 디자인 토큰 / 에셋 | 디자인 (코드 반영은 클라이언트) | `app/globals.css`의 `@theme`, `lib/constants.ts`의 `ORNAMENTS`·`THEMES`, `public/` |
 
 ### 2.2 팀 간 계약 (바꾸려면 이 문서를 먼저 수정하고 상대에게 공유)
@@ -178,3 +179,12 @@
 - 필요해지면 추가 (1.1): Turnstile 봇 방어, 트리별 OG·서버 생성 스토리 이미지, Supabase CLI, Playwright E2E
 - 크리스마스 이후 서비스 종료/보관 정책
 - 범위 밖: 모바일 네이티브 앱, 실시간 알림, 편지 답장
+
+## 7. 작업 관리 (타임라인 · plan.md)
+- **기준은 타임라인**: 📅 [포스텍 트리 개발 타임라인](https://claude.ai/artifact/XZPtaxuvxWC3hkFvo1VyNi). 사람은 타임라인을 보고 일한다. 작업 추가·일정·선행 작업·완료 기준·완료 체크는 타임라인에서 바꾼다.
+- **작업 번호**: 레인 문자 + 숫자. `D` 디자인 · `F` 프론트엔드 · `S` 서버 · `C` 클라이언트 · `T` 공통 (예: `S11`). 한 번 쓴 번호는 바꾸거나 다시 쓰지 않는다 (지운 작업의 번호 포함).
+- **plan.md는 타임라인의 사본**: `<!-- timeline:start -->`와 `<!-- timeline:end -->` 사이의 작업 목록은 타임라인에서 생성하며 손으로 고치지 않는다. 둘이 다르면 **타임라인이 맞다**.
+- **동기화**: 타임라인을 바꾸면 `node scripts/sync-plan.mjs <타임라인 HTML 또는 state JSON>`으로 plan.md를 다시 만들어 커밋한다. 스크립트는 타임라인 페이지의 `<script id="state">` JSON을 읽어 마커 사이만 교체한다.
+- **타임라인에 아직 없는 작업**: 타임라인을 고칠 수 없는 사람·세션이 찾은 작업은 plan.md의 "타임라인에 아직 없는 작업"에 적고, 타임라인 편집 권한이 있는 사람이 옮긴다.
+- **Claude에게 맡기기**: "S11 해줘"처럼 작업 번호로 요청한다. Claude가 따르는 절차는 `CLAUDE.md`의 "작업 번호로 요청받았을 때"에 있다.
+- **완료 표시**: 완료 기준을 만족하면 타임라인에서 완료 체크(기준)하고, plan.md는 다음 동기화 때 맞춰진다. Claude가 작업을 끝낸 경우 같은 커밋에서 plan.md도 `[x]`로 바꾼다.
