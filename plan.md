@@ -1,6 +1,6 @@
 # 포스텍 트리 — 구현 계획
 
-> 마지막 갱신: 2026-11-17 (C2 자동 성능 측정·개선, 실기기 체크리스트: docs/qa-c2-device.md · 타임라인에 없는 작업 추가: 데모 주인 화면 미리보기 · 작업 가이드 중복 제거: 제약·명령어는 CLAUDE.md, 환경변수는 spec.md 1.1로)
+> 마지막 갱신: 2026-11-20 (C2 실기기 확인 결과, 저사양 폰 확인은 베타로: docs/qa-c2-device.md · C2 자동 성능 측정·개선, 실기기 체크리스트: docs/qa-c2-device.md · 타임라인에 없는 작업 추가: 데모 주인 화면 미리보기 · 작업 가이드 중복 제거: 제약·명령어는 CLAUDE.md, 환경변수는 spec.md 1.1로)
 > 📅 **기준은 [타임라인 (간트 차트)](https://claude.ai/artifact/XZPtaxuvxWC3hkFvo1VyNi)** 입니다. 사람은 타임라인을 보고 일하고, 작업 추가·일정·완료 체크도 타임라인에서 합니다.
 > 이 문서의 작업 목록은 타임라인의 사본이라 **손으로 고치지 않습니다.** 타임라인을 바꾼 뒤 `node scripts/sync-plan.mjs <타임라인 HTML>`로 다시 만듭니다. 둘이 다르면 타임라인이 맞습니다.
 > 표기: 🎨 디자인(D) · 🖥 프론트엔드(F) · 🛠 서버(S) · 📱 클라이언트(C) · 👥 공통(T) · 스펙은 [`spec.md`](./spec.md)
@@ -501,7 +501,6 @@
   - 고친 파일: `app/t/[slug]/page.tsx`(프론트엔드 소유 — 와장창프론트엔드 리뷰 필요), `components/TreeView.tsx`, `lib/data.ts`(서버 소유 — 민준 리뷰 필요)
   - 공개 후(`?owner=1&dday=0`)에는 장식을 누르면 가짜 데모 편지가 열린다 (세 번째 장식이 고백 편지). 데모 `getLetters()`를 고쳤으므로 `lib/data.ts`(서버 소유 — 민준 리뷰 필요)도 포함. `?fill=`로 복제된 장식은 편지가 없어 열리지 않는다.
 
-- [ ] **C2 실기기 확인 (사람 몫 남음)** — 📱 클라이언트. C2의 자동 측정·개선은 끝났고 실기기 확인이 남았습니다. 체크리스트·결과 기록 양식·이슈 올리는 법은 [`docs/qa-c2-device.md`](./docs/qa-c2-device.md), 규칙은 `spec.md` 4.2 "애니메이션 성능 규칙".
-  - 한 일 (헤드리스 Chromium, 375px, CPU 4~6배 스로틀): 눈 30fps·탭 가려지면 정지, 전구를 SVG blur 필터에서 HTML `box-shadow`로, 무지개·별 빛을 opacity 전환으로, 동작 줄이기 대응. 메인 스레드 일 약 25~45% 감소(12/25 화면은 래스터 227→0ms/초). 표는 문서 1장.
-  - 남은 일: iOS Safari / Android Chrome / 저사양 폰에서 문서 2장 A~F 확인 → 문제는 `client` 라벨 이슈(라벨을 먼저 만들어야 함) → 다 끝나면 타임라인에서 C2 완료 체크. 위 "트리 넘김(C3) 실기기 QA" 중 실기기 항목은 문서 2장 B·F에 넣었습니다 (인앱 브라우저 항목은 C1).
-  - 고친 파일: `components/Snow.tsx`, `components/TreeScene.tsx`, `app/globals.css`, 새 파일 `scripts/perf-measure.mjs`, `docs/qa-c2-device.md`
+- [ ] **저사양 폰 애니메이션 확인 (C2에서 넘김)** — 📱 클라이언트 · 👥 베타. T3(베타 테스트)의 할 일에 추가해 주세요. C2는 iOS Safari·Android Chrome에서만 확인했고 저사양 폰은 구하지 못했습니다.
+  - 할 일: 베타 테스터 중 3년 이상 된 보급형 안드로이드나 아이폰 8·SE급을 가진 사람에게 `docs/qa-c2-device.md` 2장 A(끊김)·B 마지막 줄(넘길 때 끊김)·E(5분 켜 두고 발열)를 부탁하고, 결과를 같은 문서 "결과" 표에 적는다.
+  - 문제가 있으면 `client` 라벨 이슈. 먼저 볼 곳: 눈 `components/Snow.tsx`(`FPS`), 전구·별 `components/TreeScene.tsx`·`app/globals.css`.
