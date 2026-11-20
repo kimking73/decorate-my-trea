@@ -258,7 +258,7 @@
 ## 🛠 서버 · 민준
 > DB·RLS·API·로그인(OAuth)·배포·CI
 ### ~11/19 M1 시안·실서버
-- [ ] **S1** Supabase 생성·0001 적용 · 11/13(금)–11/15(일)
+- [x] **S1** Supabase 생성·0001 적용 · 11/13(금)–11/15(일)
   - SQL Editor로 supabase/migrations/0001_init.sql 적용.
   - 할 일
     - 프로젝트 생성
@@ -281,7 +281,7 @@
     - 주소를 클라이언트에게 전달
   - 산출물: 데모 HTTPS 주소
   - 완료 기준: 휴대폰에서 /t/demo가 열리고 공유 링크가 배포 주소로 나옴
-- [ ] **S11** submit_letter() 마이그레이션·RLS 테스트 · 11/15(일)–11/17(화) · 선행: S1 ⭐
+- [x] **S11** submit_letter() 마이그레이션·RLS 테스트 · 11/15(일)–11/17(화) · 선행: S1 ⭐
   - 검증·작성 제한·저장을 DB 함수 하나에서 한 트랜잭션으로 처리. spec.md 5.3.
   - 할 일
     - 0002_submit_letter.sql: letters.client_hash 컬럼·인덱스
@@ -291,7 +291,7 @@
     - 빈 Postgres DB에서 실행 (Supabase DB에서 실행 금지)
   - 산출물: supabase/migrations/0002_submit_letter.sql
   - 완료 기준: anon·authenticated는 호출 실패, service_role은 성공, 제한 초과 시 거부
-- [ ] **S12** /api/letters를 submit_letter()로 교체 · 11/17(화)–11/18(수) · 선행: S11
+- [x] **S12** /api/letters를 submit_letter()로 교체 · 11/17(화)–11/18(수) · 선행: S11
   - 요청·응답 형식은 그대로라 WriteForm은 고칠 필요 없음. spec.md 4.4, 5.2.
   - 할 일
     - anon_id 쿠키 발급 (httpOnly)
@@ -306,7 +306,7 @@
     - 프론트엔드·클라이언트에 환경변수 전달 (비밀 키 제외)
   - 산출물: .env.local
   - 완료 기준: M1 통과
-- [ ] **S13** GitHub Actions CI · 11/18(수)–11/19(목) · 선행: S11
+- [x] **S13** GitHub Actions CI · 11/18(수)–11/19(목) · 선행: S11
   - 할 일
     - lint · typecheck · build
     - Postgres 서비스 컨테이너에서 scripts/test-rls.sql
