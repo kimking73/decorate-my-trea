@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Gowun_Dodum, Jua } from "next/font/google";
 import "./globals.css";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
@@ -20,18 +21,27 @@ export const viewport: Viewport = {
   themeColor: "#0f2a44",
 };
 
+// 빌드할 때 내려받아 우리 도메인에서 서빙한다 (자체 호스팅, 인앱 브라우저에서 외부 요청 없음).
+// 한글 글리프는 unicode-range로 나뉜 파일이 필요할 때만 받아지므로 preload는 끈다.
+const gowunDodum = Gowun_Dodum({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+  variable: "--font-gowun-dodum",
+});
+
+const jua = Jua({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+  variable: "--font-jua",
+});
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="ko" className={`${gowunDodum.variable} ${jua.variable}`}>
       <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );

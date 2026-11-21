@@ -1,6 +1,6 @@
 # 포스텍 트리 — 구현 계획
 
-> 마지막 갱신: 2026-11-21 (타임라인 링크를 실제 주소로 교체·동기화, 번호가 붙은 와이어프레임 작업을 미등록 목록에서 정리 · 와이어프레임 반영: 확정된 변경·타임라인에 아직 없는 작업) · 2026-11-17 (C2 자동 성능 측정·개선, 실기기 체크리스트: docs/qa-c2-device.md · 타임라인에 없는 작업 추가: 데모 주인 화면 미리보기 · 작업 가이드 중복 제거: 제약·명령어는 CLAUDE.md, 환경변수는 spec.md 1.1로)
+> 마지막 갱신: 2026-11-21 (F3 완료: next/font 자체 호스팅·framer-motion 제거 · 타임라인 링크를 실제 주소로 교체·동기화, 번호가 붙은 와이어프레임 작업을 미등록 목록에서 정리 · 와이어프레임 반영: 확정된 변경·타임라인에 아직 없는 작업) · 2026-11-17 (C2 자동 성능 측정·개선, 실기기 체크리스트: docs/qa-c2-device.md · 타임라인에 없는 작업 추가: 데모 주인 화면 미리보기 · 작업 가이드 중복 제거: 제약·명령어는 CLAUDE.md, 환경변수는 spec.md 1.1로)
 > 🖼 화면 와이어프레임: [포스텍 트리 와이어프레임 (프론트엔드 화면)](https://claude.ai/artifact/48YKQPtn78agRoLiFXwSE5) — 화면별 데이터·액션은 spec.md 2.3
 > 📅 **기준은 [타임라인 (간트 차트)](https://claude.ai/artifact/LVz71ybViGJ7xw6Ga1mD1Y)** 입니다. 사람은 타임라인을 보고 일하고, 작업 추가·일정·완료 체크도 타임라인에서 합니다.
 > 이 문서의 작업 목록은 타임라인의 사본이라 **손으로 고치지 않습니다.** 타임라인을 바꾼 뒤 `node scripts/sync-plan.mjs <타임라인 HTML>`로 다시 만듭니다. 둘이 다르면 타임라인이 맞습니다.
@@ -52,7 +52,6 @@
 | 연출 | `canvas-confetti` ^1.9 | | `WriteForm.tsx`에서 사용 |
 | 이미지 | `html-to-image` ^1.11 | | `ShareButtons.tsx`에서 동적 `import()` |
 | 가드 | `server-only` | | 서버 전용 모듈 첫 줄에 `import "server-only"` |
-| 제거 예정 | `framer-motion` | ^14.9 | 설치만 되어 있고 미사용 → **F3**에서 제거. 새로 쓰지 말 것 |
 | 린트 | `eslint` ^9 + `eslint-config-next` | | flat config(`eslint.config.mjs`), `next/core-web-vitals` + `next/typescript`, `scripts/**` 제외 |
 
 로컬에 `node_modules`가 없으면 `npm install`부터 합니다. 새 의존성은 spec.md 1.1에 있는 것만 추가합니다.
@@ -60,7 +59,7 @@
 ### 디렉터리와 파일 역할 (소유는 spec.md 2.1)
 | 경로 | 역할 | 실행 위치 |
 | --- | --- | --- |
-| `app/layout.tsx` | 루트 레이아웃, `metadata`·`viewport`, 폰트 (`<link>` → **F3**에서 `next/font/google`) | 서버 |
+| `app/layout.tsx` | 루트 레이아웃, `metadata`·`viewport`, 폰트 (`next/font/google` Jua·Gowun Dodum → `--font-jua`·`--font-gowun-dodum`) | 서버 |
 | `app/page.tsx` | 홈: 카운트다운·통계(`getStats`)·특별 트리 목록 | 서버 |
 | `app/login/page.tsx` · `app/create` · `app/me` · `app/admin` | 로그인 / 트리 생성·이름 변경 / 내 페이지 / 관리자 | 서버 (+ 폼 컴포넌트는 클라이언트) |
 | `app/t/[slug]/page.tsx` | 트리 보기. 주인이고 공개 이후면 `getLetters`(UI 분기일 뿐, 권한은 RLS), 아니면 장식만. `?dday=N`(개발·데모만), `?added`, `?egg` | 서버 → `TreeView` |
@@ -102,7 +101,6 @@
 | --- | --- | --- | --- |
 | 편지 저장 | API가 `count` 쿼리 2번 후 INSERT (동시 요청에 취약), IP만 기준 | `0002_submit_letter.sql`: `letters.client_hash` + `submit_letter(...)` 한 트랜잭션. API는 검증 → `anon_id` 쿠키(없으면 발급, httpOnly) → IP·브라우저 ID를 `IP_HASH_SALT`로 sha256 → RPC 1회 → 제한 오류를 `429`로 변환 | **S11**, **S12** |
 | 작성 제한 | IP 기준 분당 5 · 트리당 하루 10 | 브라우저 분당 5 · 트리당 하루 10, IP 분당 30 (베타에서 조정) | **S11**, **S12** |
-| 폰트 | Google Fonts `<link>` | `next/font/google` (Jua, Gowun Dodum) → CSS 변수로 `@theme`에 연결 | **F3** |
 | 스토리 이미지 저장 | `html-to-image` → `<a download>` | 캡처는 그대로, `navigator.share({ files })` → 안 되면 이미지를 띄워 "길게 눌러 저장" | **C7** |
 | OG | `metadata.openGraph` 텍스트만 | 정적 `app/opengraph-image.png` 1장 | **F2** |
 | 장식 아이콘 | 이모지 (`Ornament.emoji`) | `public/ornaments/<id>.svg`, id는 그대로 | **C4** |

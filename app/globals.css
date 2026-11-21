@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Gowun Dodum", "Pretendard", system-ui, sans-serif;
-  --font-display: "Jua", "Gowun Dodum", system-ui, sans-serif;
+  /* --font-gowun-dodum, --font-jua는 app/layout.tsx의 next/font가 <html>에 넣는다 */
+  --font-sans: var(--font-gowun-dodum), "Pretendard", system-ui, sans-serif;
+  --font-display: var(--font-jua), var(--font-gowun-dodum), system-ui, sans-serif;
   --color-pine: #1f7a45;
   --color-berry: #c8102e;
   --color-cream: #fff8ec;
