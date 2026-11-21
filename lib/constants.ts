@@ -111,7 +111,9 @@ export const TREE_COLORS: Record<TreeColorId, { name: string; tree: [string, str
   navy: { name: "남색", tree: ["#1f2f52", "#2b3f6b", "#3b5285"] },
 };
 export function isTreeColor(id: string | null | undefined): id is TreeColorId {
-  return !!id && id in TREE_COLORS;
+  // `in`은 "constructor"·"toString" 같은 Object.prototype 키도 true라 자기 키만 받는다.
+  // Object.hasOwn은 iOS 15.4 미만 Safari에 없어서 hasOwnProperty.call을 쓴다 (TreeScene에서 브라우저가 실행)
+  return !!id && Object.prototype.hasOwnProperty.call(TREE_COLORS, id);
 }
 
 // 숨은 키워드 이스터에그

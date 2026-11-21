@@ -19,7 +19,7 @@ function readSpecialTreeForm(fd: FormData) {
   const title = String(fd.get("title") ?? "").trim().slice(0, 30);
   const owner_name = String(fd.get("owner_name") ?? "").trim().slice(0, 20);
   const themeRaw = String(fd.get("theme") ?? "chalkboard") as ThemeId;
-  const theme = themeRaw in THEMES ? themeRaw : "chalkboard";
+  const theme = Object.prototype.hasOwnProperty.call(THEMES, themeRaw) ? themeRaw : "chalkboard"; // `in`은 prototype 키도 통과
   const description = String(fd.get("description") ?? "").trim().slice(0, 200) || null;
   const deptRaw = String(fd.get("department") ?? "");
   const department = DEPARTMENTS.some((d) => d.id === deptRaw) ? deptRaw : null;
