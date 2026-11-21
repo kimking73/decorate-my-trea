@@ -21,18 +21,22 @@
 
 ## 역할과 소유 파일
 - 소유 파일 맵과 팀 간 계약은 `spec.md` 2장에 있다. 다른 역할의 파일을 고칠 땐 그 사람에게 리뷰를 받는다.
-- 계약(데이터 타입, `TreeScene`/`TreeView` props, `POST /api/letters`, 장식 id, 서버 액션·조회 함수)을 바꾸려면 `spec.md`부터 수정한다.
-- 프론트엔드는 `app/actions.ts`·`lib/data.ts`를 호출만 하고, 쿼리·권한·API 구현은 서버 담당이 맡는다.
-- `lib/constants.ts`의 장식 `id`는 DB에 저장되므로 이미 쓰인 id는 바꾸거나 지우지 않는다.
+- 계약(`spec.md` 2.2)을 바꾸려면 `spec.md`부터 수정한다.
+- 코드를 어떻게 짜는지(버전, 파일 역할, 데이터 접근, 인증, 데모 모드, 스타일)는 `plan.md`의 "기술 스택 · 작업 가이드"에 있다.
 
 ## 지켜야 할 제약
-- 편지 본문 공개 시점은 DB RLS가 강제한다. 클라이언트 시간으로 열람을 판단하는 코드를 추가하지 않는다.
+문서마다 다시 적지 않는다. 이 목록이 기준이다.
+- 편지 본문 공개 시점은 DB RLS(`is_revealed()`)가 강제한다. 클라이언트 시간·`REVEAL_AT`으로 열람을 판단하는 코드를 추가하지 않는다.
 - 고백 여부(`is_confession`)는 공개 전 어떤 응답에도 내보내지 않는다 (홈 집계 숫자만 허용).
-- `SUPABASE_SERVICE_ROLE_KEY`는 서버 코드(`app/api/**`, server-only)에서만 쓴다.
+- `SUPABASE_SERVICE_ROLE_KEY`·`createAdminClient()`는 서버 코드(`app/api/**`, server-only)에서만 쓴다. `NEXT_PUBLIC_` 없는 환경변수는 클라이언트 컴포넌트에서 읽지 않고, 키 값을 코드·문서·커밋에 넣지 않는다.
+- 프론트엔드는 `app/actions.ts`·`lib/data.ts`를 호출만 하고, 쿼리·권한·API 구현은 서버 담당이 맡는다.
+- `lib/constants.ts`의 장식 `id`는 DB에 저장되므로 이미 쓰인 id는 바꾸거나 지우지 않는다 (추가만).
 
-## 명령어
+## 명령어와 검증
+- `npm install` — 처음 한 번 (`node_modules`가 없을 때)
 - `npm run dev` — 로컬 실행 (Supabase 환경변수가 없으면 데모 모드: `/t/demo`, `/t/prof-demo`)
-- `npm run build`, `npm run lint` — 커밋 전 통과 확인
-- RLS 테스트: 빈 로컬 Postgres DB에서 `psql -d <빈DB> -f scripts/test-rls.sql`
-- D-day 연출 미리보기 (개발/데모 모드): `/t/demo?dday=7`, `/?dday=0`
+- `npm run build`, `npm run lint`, `npm run typecheck` — 커밋 전 모두 통과
+- DB를 바꿨으면: 빈 로컬 Postgres에서 `psql -d <빈DB> -f supabase/migrations/0001_init.sql`(및 새 마이그레이션) 적용 후 `psql -d <빈DB> -f scripts/test-rls.sql`. 새 권한 규칙은 `test-rls.sql`에 케이스를 추가한다. **Supabase 프로젝트에는 절대 돌리지 않는다.**
+- 화면을 바꿨으면: 데모 모드에서 `/`, `/t/demo`, `/t/prof-demo`, `/t/demo?dday=7`, `/?dday=0`을 모바일 폭(375px)으로 확인한다.
+- 자동 E2E 테스트는 없다. 실기기·인앱 브라우저 확인은 사람이 한다 (C1, C2).
 - 타임라인 → plan.md 동기화: `node scripts/sync-plan.mjs <타임라인 HTML 또는 state JSON>`

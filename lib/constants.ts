@@ -2,7 +2,13 @@
 export const REVEAL_AT = new Date(process.env.NEXT_PUBLIC_REVEAL_AT ?? "2026-12-25T00:00:00+09:00");
 
 export const SITE_NAME = "포스텍 트리";
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+// 공유 링크·OG 기준 주소. 환경변수가 없으면 Vercel 배포 주소를 쓴다 (QA용 데모 배포에서 공유 링크가 localhost가 되지 않도록, spec.md 1.1).
+const vercelHost =
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
+    ? process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
+    : process.env.NEXT_PUBLIC_VERCEL_URL;
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || (vercelHost ? `https://${vercelHost}` : "http://localhost:3000");
 
 
 export type Ornament = {

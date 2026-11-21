@@ -1,0 +1,61 @@
+name: CI
+
+# S13 — 머지 전에 lint · typecheck · build 와 DB RLS 테스트를 통과시킨다 (spec.md 1.1, plan.md S13)
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: lint · typecheck · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 린트
+        run: npm run lint
+      - name: 타입 검사
+        run: npm run typecheck
+      - name: 빌드 (Supabase 환경변수 없음 = 데모 모드)
+        run: npm run build
+
+  rls:
+    name: Postgres RLS 테스트
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: treetest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d treetest"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGPASSWORD: postgres
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGDATABASE: treetest
+    steps:
+      - uses: actions/checkout@v4
+      - name: psql 준비
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: 마이그레이션 적용 + RLS 테스트 (빈 DB 전용 스크립트)
+        run: psql -v ON_ERROR_STOP=1 -f scripts/test-rls.sql

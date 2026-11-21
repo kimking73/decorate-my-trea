@@ -1,14 +1,12 @@
 # 포스텍 트리 — 구현 계획
 
-> 마지막 갱신: 2026-11-14 (타임라인 기준·작업 번호 체계, 스펙 7장)
+> 마지막 갱신: 2026-11-17 (C2 자동 성능 측정·개선, 실기기 체크리스트: docs/qa-c2-device.md · 타임라인에 없는 작업 추가: 데모 주인 화면 미리보기 · 작업 가이드 중복 제거: 제약·명령어는 CLAUDE.md, 환경변수는 spec.md 1.1로)
 > 📅 **기준은 [타임라인 (간트 차트)](https://claude.ai/artifact/XZPtaxuvxWC3hkFvo1VyNi)** 입니다. 사람은 타임라인을 보고 일하고, 작업 추가·일정·완료 체크도 타임라인에서 합니다.
 > 이 문서의 작업 목록은 타임라인의 사본이라 **손으로 고치지 않습니다.** 타임라인을 바꾼 뒤 `node scripts/sync-plan.mjs <타임라인 HTML>`로 다시 만듭니다. 둘이 다르면 타임라인이 맞습니다.
 > 표기: 🎨 디자인(D) · 🖥 프론트엔드(F) · 🛠 서버(S) · 📱 클라이언트(C) · 👥 공통(T) · 스펙은 [`spec.md`](./spec.md)
 
 ## Claude에게 맡기기
-- 작업 번호로 요청합니다: "**S11 해줘**", "**C7 해줘**"
-- Claude는 `CLAUDE.md`의 "작업 번호로 요청받았을 때" 절차대로 선행 작업 확인 → 스펙 확인 → `task/<번호>` 브랜치에서 작업 → 검증 → 완료 체크까지 진행합니다.
-- 디자인 시안, 외부 콘솔 설정(OAuth·도메인·Vercel·Supabase 대시보드), 실기기 QA, 베타, 공지는 사람이 해야 하는 일입니다. Claude는 이런 단계를 따라 할 수 있는 안내로 정리해 줍니다.
+- 작업 번호로 요청합니다: "**S11 해줘**", "**C7 해줘**". Claude가 따르는 절차와 사람이 맡는 일은 `CLAUDE.md`의 "작업 번호로 요청받았을 때"에 있습니다.
 
 ## 마일스톤
 
@@ -30,7 +28,7 @@
 - [x] Supabase 없이 도는 데모 모드 (`/t/demo`, `/t/prof-demo`)
 
 ## 기술 스택 · 작업 가이드 (AI가 작업 전에 읽을 것)
-> 이 절은 타임라인 마커 밖에 있어 동기화로 지워지지 않습니다. 결정의 기준은 `spec.md` 1.1(스택)·2장(역할·계약)·4~5장(규칙·API·DB)이고, 바뀌면 spec.md를 먼저 고친 뒤 같은 커밋에서 이 절도 맞춥니다. (2026-11-14 코드 기준)
+> 이 절은 타임라인 마커 밖에 있어 동기화로 지워지지 않습니다. 코드를 **어떻게** 짜는지만 적습니다. 결정·규칙은 `spec.md`(1.1 스택·환경변수, 2장 역할·계약, 4~5장 규칙·API·DB), 꼭 지킬 제약·작업 절차·명령어·검증은 `CLAUDE.md`에만 있고 여기에 다시 적지 않습니다. (2026-11-14 코드 기준)
 
 ### 한눈에 보기
 ```
@@ -111,7 +109,7 @@
 | 관측 | 없음 | Vercel Analytics, (선택) Sentry | **S15** |
 | 카카오톡 공유 | 링크 복사·Web Share | (선택) Kakao JS SDK, `lib/kakao.ts` | **C11** |
 
-`POST /api/letters`의 요청·응답 형식은 바뀌지 않습니다 (spec.md 5.2). **하지 않기로 한 것**은 쓰지 않습니다: Turnstile, `next/og`, Supabase CLI, Playwright, Firebase, 별도 백엔드, Upstash Redis, 애니메이션 라이브러리.
+`POST /api/letters`의 요청·응답 형식은 바뀌지 않습니다 (spec.md 5.2). spec.md 1.1의 "필요해지면 추가"·"쓰지 않기로 한 것"에 있는 기술은 쓰지 않습니다.
 
 ### 인증
 - 공급자: 카카오·구글 OAuth (`signInWithOAuth`, `redirectTo` = `/auth/callback?next=…`). 코드에는 이메일 OTP 로그인도 있음 (`signInWithOtp`).
@@ -126,45 +124,14 @@
 - 새 조회 함수를 만들면 **데모 분기(`if (!isConfigured) return …`)도 함께** 넣어 데모 모드가 깨지지 않게 합니다.
 - `?dday=N`(0~60)은 개발·데모 모드에서만 연출을 바꾸며 열람 권한과 무관합니다.
 
-### 환경변수 (`.env.local`, Vercel 동일 · 예시는 `.env.example`)
-| 이름 | 범위 | 쓰는 곳 |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 공개 | `lib/supabase/*`, `middleware.ts` |
-| `SUPABASE_SERVICE_ROLE_KEY` | **서버 전용** | `createAdminClient()` → `app/api/**`에서만 |
-| `IP_HASH_SALT` | **서버 전용** | `/api/letters` 해시 |
-| `NEXT_PUBLIC_SITE_URL` | 공개 | `SITE_URL` (공유 링크, `metadataBase`) |
-| `NEXT_PUBLIC_REVEAL_AT` | 공개 | `REVEAL_AT` 표시용 기본값. 실제 공개는 DB `app_config.reveal_at` |
-| `NEXT_PUBLIC_KAKAO_JS_KEY`, `NEXT_PUBLIC_SENTRY_DSN` | 공개 | (선택) C11, S15 |
-
-`NEXT_PUBLIC_` 없는 값은 클라이언트 컴포넌트에서 읽지 않습니다. 키 값을 코드·문서·커밋에 넣지 않습니다.
-
 ### 스타일·연출
 - Tailwind v4 유틸리티 + `app/globals.css`의 공용 클래스: `.card`, `.btn` / `.btn-primary` / `.btn-light` / `.btn-ghost`, `.font-display`.
 - 토큰(`@theme`): `--font-sans`(Gowun Dodum), `--font-display`(Jua), `--color-pine #1f7a45`, `--color-berry #c8102e`, `--color-cream #fff8ec`. 배경 `#0f2a44`. 디자인 확정(**D2**) 후 이 토큰을 바꿉니다.
 - 애니메이션은 CSS `@keyframes`(`sway`, `pop-in`, `twinkle`, `sleigh`, `cry`, `shake`)와 `canvas-confetti`만 씁니다.
 - 모바일 우선 (`min-h-dvh`, `maximumScale: 1`). 대부분 인앱 브라우저라 `download` 속성·팝업·서드파티 쿠키에 기대지 않습니다.
-- 장식 id(`lib/constants.ts`)는 DB에 저장되므로 **바꾸거나 지우지 않고** 추가만 합니다. 학과 장식은 `dept-<학과id>`.
+- 장식 id는 추가만 합니다 (CLAUDE.md 제약). 학과 장식은 `dept-<학과id>`.
 
-### 꼭 지킬 제약 (CLAUDE.md와 같음)
-1. 편지 본문 공개는 DB RLS(`is_revealed()`)가 강제합니다. 클라이언트 시간·`REVEAL_AT`으로 열람을 판단하지 않습니다.
-2. `is_confession`은 공개 전 어떤 응답에도 넣지 않습니다 (홈 집계 숫자만).
-3. `SUPABASE_SERVICE_ROLE_KEY`·`createAdminClient()`는 `app/api/**`의 서버 코드에서만.
-4. 프론트엔드는 `app/actions.ts`·`lib/data.ts`를 호출만 합니다. 함수 이름·인자·반환 타입이 바뀌면 spec.md 2.2부터 고칩니다.
-
-### 명령어와 검증
-```bash
-npm install          # 처음 한 번
-npm run dev          # http://localhost:3000 (환경변수 없으면 데모 모드)
-npm run build        # 커밋 전 필수
-npm run lint         # 커밋 전 필수
-npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
-```
-- DB를 바꿨으면: 빈 로컬 Postgres에서 `psql -d <빈DB> -f supabase/migrations/0001_init.sql`(및 새 마이그레이션) 적용 후 `psql -d <빈DB> -f scripts/test-rls.sql`. 새 권한 규칙은 `test-rls.sql`에 케이스를 추가합니다. **Supabase 프로젝트에는 절대 돌리지 않습니다.**
-- 화면을 바꿨으면 데모 모드에서 `/`, `/t/demo`, `/t/prof-demo`, `/t/demo?dday=7`, `/?dday=0`을 모바일 폭(375px)으로 확인합니다.
-- 자동 E2E 테스트는 없습니다. 실기기·인앱 브라우저 확인은 사람이 합니다 (**C1**, **C2**).
-
-### 작업 규칙 요약
-- 브랜치 `task/<번호>-<짧은-설명>`, 커밋 `<번호>: <요약>`. 푸시·PR은 요청받을 때만.
+### 코드 작성 규칙
 - UI 문구·에러 메시지·주석은 한국어. 에러는 사용자에게 다정한 문장으로 (예: "루돌프가 숨 고르는 중이에요").
 - 사용자 입력은 서버에서 다시 자르고 검증합니다 (`trim().slice(0, n)`, DB `check` 제약과 같은 길이).
 - 마이그레이션은 새 번호 파일(`0002_…`)로 추가하고 기존 파일은 고치지 않습니다. 재실행해도 안전하게 `if not exists`·`create or replace`·`drop policy if exists`를 씁니다.
@@ -172,9 +139,9 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
 ---
 
 <!-- timeline:start -->
-<!-- 타임라인에서 생성됨 (2026-11-14). 손으로 고치지 말고 타임라인을 고친 뒤 scripts/sync-plan.mjs를 실행하세요. -->
+<!-- 타임라인에서 생성됨 (2026-11-17). 손으로 고치지 말고 타임라인을 고친 뒤 scripts/sync-plan.mjs를 실행하세요. -->
 
-> 타임라인 동기화: 2026-11-14 · 작업 46개 중 1개 완료 · ⭐ 핵심 작업
+> 타임라인 동기화: 2026-11-17 · 작업 51개 중 4개 완료 · ⭐ 핵심 작업
 
 ## 🎨 디자인 · (담당 미정)
 > 아이덴티티, 일러스트, 아이콘, 공유 이미지
@@ -288,10 +255,10 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
     - 베타 피드백 중 페이지·폼 버그 수정
     - 폼 라벨·에러 문구·키보드 이동 (홈·로그인·내 페이지·관리자)
 
-## 🛠 서버 · (담당 미정)
+## 🛠 서버 · 민준
 > DB·RLS·API·로그인(OAuth)·배포·CI
 ### ~11/19 M1 시안·실서버
-- [ ] **S1** Supabase 생성·0001 적용 · 11/13(금)–11/15(일)
+- [x] **S1** Supabase 생성·0001 적용 · 11/13(금)–11/15(일)
   - SQL Editor로 supabase/migrations/0001_init.sql 적용.
   - 할 일
     - 프로젝트 생성
@@ -305,7 +272,16 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
     - 구글 OAuth 클라이언트
     - Supabase Provider 설정
   - 산출물: 로그인 동작
-- [ ] **S11** submit_letter() 마이그레이션·RLS 테스트 · 11/15(일)–11/17(화) · 선행: S1 ⭐
+- [ ] **S16** QA용 데모 배포 (Vercel, 환경변수 없이) · 11/15(일) ⭐
+  - C1·C2 QA에 HTTPS 주소가 필요한데 실서버 배포(S4)는 11/19 이후라, 데모 모드로 먼저 배포. spec.md 1.1.
+  - 할 일
+    - Vercel에 GitHub 저장소 가져오기 (환경변수 넣지 않음)
+    - main 배포 → https://<프로젝트>.vercel.app/t/demo 확인
+    - 공유 링크가 localhost가 아닌 배포 주소로 나오는지 확인
+    - 주소를 클라이언트에게 전달
+  - 산출물: 데모 HTTPS 주소
+  - 완료 기준: 휴대폰에서 /t/demo가 열리고 공유 링크가 배포 주소로 나옴
+- [x] **S11** submit_letter() 마이그레이션·RLS 테스트 · 11/15(일)–11/17(화) · 선행: S1 ⭐
   - 검증·작성 제한·저장을 DB 함수 하나에서 한 트랜잭션으로 처리. spec.md 5.3.
   - 할 일
     - 0002_submit_letter.sql: letters.client_hash 컬럼·인덱스
@@ -315,7 +291,7 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
     - 빈 Postgres DB에서 실행 (Supabase DB에서 실행 금지)
   - 산출물: supabase/migrations/0002_submit_letter.sql
   - 완료 기준: anon·authenticated는 호출 실패, service_role은 성공, 제한 초과 시 거부
-- [ ] **S12** /api/letters를 submit_letter()로 교체 · 11/17(화)–11/18(수) · 선행: S11
+- [x] **S12** /api/letters를 submit_letter()로 교체 · 11/17(화)–11/18(수) · 선행: S11
   - 요청·응답 형식은 그대로라 WriteForm은 고칠 필요 없음. spec.md 4.4, 5.2.
   - 할 일
     - anon_id 쿠키 발급 (httpOnly)
@@ -330,7 +306,7 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
     - 프론트엔드·클라이언트에 환경변수 전달 (비밀 키 제외)
   - 산출물: .env.local
   - 완료 기준: M1 통과
-- [ ] **S13** GitHub Actions CI · 11/18(수)–11/19(목) · 선행: S11
+- [x] **S13** GitHub Actions CI · 11/18(수)–11/19(목) · 선행: S11
   - 할 일
     - lint · typecheck · build
     - Postgres 서비스 컨테이너에서 scripts/test-rls.sql
@@ -339,6 +315,7 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
   - 완료 기준: M1 통과
 ### ~11/26 M2 반영·배포
 - [ ] **S4** 도메인·Vercel 배포·환경변수 · 11/19(목)–11/21(토) · 선행: S3
+  - S16에서 만든 Vercel 프로젝트에 환경변수·도메인을 더해 실서버로 전환.
   - 할 일
     - 도메인 결정·구매 → Vercel 연결
     - 환경변수 (spec.md 1.1 표)
@@ -352,6 +329,14 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
     - Vercel Analytics 켜기
     - (선택) Sentry 연동 (instrumentation.ts)
     - Supabase 사용량·일시정지 상태 확인 (무료 플랜은 약 1주일 미사용 시 일시정지)
+- [ ] **S17** 0시 대비 조회 경량화 · 11/23(월)–11/25(수) · 선행: S12 ⭐
+  - 트리 페이지 1회에 Supabase 호출이 약 7번, 홈은 get_stats()가 letters 전체를 4번 셈. spec.md 4.5.
+  - 할 일
+    - lib/data.ts의 getUser·getTreeBySlug를 React cache()로 감싸 요청 안 중복 제거
+    - get_stats() 결과를 최대 60초 캐시 (홈만. 편지·장식 조회는 캐시 금지)
+    - 미들웨어 getUser()가 매 요청 Auth 서버를 부르는 부담 확인, 줄일 방법 검토
+    - letters 조회에 필요한 인덱스 확인 (tree_id, hidden)
+  - 완료 기준: 트리 페이지 1회의 Supabase 호출 수가 줄어든 것을 로그로 확인, 데모·실서버 흐름 그대로 동작
 ### ~11/29 M3 베타
 - [ ] **S7** 관리자·교수님 트리 준비 · 11/24(화)–11/27(금) · 선행: S4
   - 할 일
@@ -365,7 +350,25 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
     - 금칙어 보강
     - 도배가 생기면 Turnstile 추가 검토
 ### ~12/24 리허설
-- [ ] **S9** 공개 리허설 · 12/24(목)
+- [ ] **S18** 12/25 0시 부하 테스트 · 12/2(수)–12/7(월) · 선행: S17, C12, S4 ⭐
+  - 실제 가입 트리 수로 목표 동시 접속을 정하고 0시 열람을 재현. 운영 DB의 실제 편지는 건드리지 않음.
+  - 할 일
+    - 목표 정하기: 가입 트리 수 × 0시 접속 비율 (오픈 후 첫 주 수치로)
+    - 테스트용 Supabase 프로젝트에 같은 스키마 + 가짜 트리·편지 채우기
+    - k6 등으로 로그인한 주인의 트리 열람 + 홈 방문을 동시에 재현
+    - 오류율·p95·Supabase 연결 수·Vercel 함수 시간 기록
+    - 무료 플랜 한도(Auth 요청·DB 연결·함수 실행)에 걸리는 지점 찾기
+  - 산출물: 부하 테스트 결과 (목표 대비)
+  - 완료 기준: 목표 동시 접속에서 오류율 1% 미만, p95 3초 이내. 아니면 S19에서 증설 결정
+- [ ] **S19** 공개일 증설·장애 대응 준비 · 12/14(월)–12/18(금) · 선행: S18
+  - S18 결과로 12/24~12/26 유료 플랜 여부와 비용 부담을 정하고, 당일 문제가 생겼을 때 할 일을 미리 적음. spec.md 6장.
+  - 할 일
+    - Supabase·Vercel 플랜 증설 여부·비용 결정 (필요하면 12/24 낮에 올리고 12/26에 내림)
+    - 장애 시 안내 문구·공지 문안 준비
+    - 당일 0시 대기 인원과 확인 순서 (S10)
+  - 산출물: 공개일 대응 문서
+  - 완료 기준: 증설 여부 결정, 당일 대응 순서를 팀이 공유
+- [ ] **S9** 공개 리허설 · 12/24(목) · 선행: S19
   - 테스트 트리로 reveal_at을 당겨 열람 확인 후 원래 시각으로 복구.
 ### 이후
 - [ ] **S10** 공개 모니터링 · 12/25(금)–12/26(토) · 선행: S9
@@ -376,7 +379,7 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
 ## 📱 클라이언트 · 람쥐썬더
 > 트리 화면 인터랙션, 연출, 실기기 QA
 ### ~11/19 M1 시안·실서버
-- [ ] **C1** 인앱 브라우저 QA (인스타·카톡) · 11/13(금)–11/17(화)
+- [x] **C1** 인앱 브라우저 QA (인스타·카톡) · 11/13(금)–11/17(화) · 선행: S16
   - 대부분 인스타 링크로 들어오므로 가장 먼저.
   - 할 일
     - 링크 열기
@@ -385,12 +388,12 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
     - navigator.share({ files }) 지원 여부 (iOS·Android)
     - 키보드가 입력창을 가리는지
   - 산출물: 이슈 목록 (client 라벨)
-- [ ] **C2** 실기기·성능 QA · 11/16(월)–11/19(목)
+- [ ] **C2** 실기기·성능 QA · 11/16(월)–11/19(목) · 선행: S16
   - 할 일
     - iOS Safari
     - Android Chrome
     - 저사양 폰 애니메이션 (전구·눈·흔들림)
-- [ ] **C3** 장식 많을 때 페이지 넘김 UX · 11/17(화)–11/19(목)
+- [x] **C3** 장식 많을 때 페이지 넘김 UX · 11/17(화)–11/19(목)
   - 한 화면에 18개, 넘으면 페이지 넘김.
 ### ~11/26 M2 반영·배포
 - [ ] **C5** 트리 일러스트·편지지 반영 · 11/20(금)–11/24(화) · 선행: D3, D5
@@ -421,6 +424,14 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
   - 할 일
     - 봉투 → 편지 전환
     - 여러 통 연속 읽기
+- [ ] **C12** 공개 순간 요청 흩기·자동 재시도 · 11/26(목)–11/28(토) ⭐
+  - 0시 전에 열어 둔 화면이 모두 같은 순간 새로고침하지 않게. spec.md 4.5.
+  - 할 일
+    - 카운트다운이 0이 되면 주인은 0~30초, 방문자는 0~120초 무작위로 기다린 뒤 router.refresh() 한 번
+    - 기다리는 동안 "편지를 꺼내는 중" 연출
+    - 실패하면 2·4·8·16초 간격(각자 무작위 가감)으로 재시도, 끝내 실패하면 안내 문구
+    - 개발·데모에서 ?dday=0으로 확인
+  - 완료 기준: 공개 순간 열어 둔 탭 여러 개가 서로 다른 시각에 요청하고, 서버 오류를 흉내 내면 재시도 후 열림
 - [ ] **C9** 접근성 · 11/27(금)–11/28(토)
   - 할 일
     - 버튼 포커스
@@ -441,7 +452,7 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
     - 브라우저 ID + IP 작성 제한
     - submit_letter() 원자 처리
   - 산출물: spec.md 1.1, plan.md
-- [ ] **T8** 서버 담당자 정하기 · 11/15(일)
+- [x] **T8** 서버 담당자 정하기 · 11/15(일)
   - 프론트엔드와 서버를 나눴으므로 서버 담당자 별명을 정해 spec.md 2장과 이 타임라인 담당자 칸에 적기.
 ### ~11/29 M3 베타
 - [ ] **T2** 베타 테스터 모집 · 11/24(화)–11/28(토)
@@ -471,4 +482,26 @@ npm run typecheck    # 커밋 전 필수 (tsc --noEmit)
 ## 타임라인에 아직 없는 작업
 > 타임라인을 고칠 수 없는 사람·세션이 찾은 작업을 여기에 적고, 타임라인 편집 권한이 있는 사람이 번호를 붙여 옮깁니다. 옮긴 뒤에는 여기서 지웁니다.
 
-- (없음)
+- [ ] **트리 넘김(C3) 실기기 QA** — C1(인앱 브라우저)·C2(실기기) 할 일에 추가해 주세요. 규칙은 `spec.md` 5.1 "트리 넘김". C3는 데모 모드 375px 헤드리스 Chromium에서만 확인했습니다.
+  - 준비: 데모 배포(또는 `npm run dev`)에서 `/t/demo?fill=60` — 장식 60개, 트리 4개. `&added=1`을 붙이면 편지를 막 달고 온 상태. (`?fill=`은 데모 모드에서만 동작)
+  - 확인할 환경: 인스타 인앱(iOS·Android), 카톡 인앱(iOS·Android), iOS Safari, Android Chrome
+  - 확인 항목
+    - 트리 위에서 좌우로 밀면 다음/이전 트리로 넘어가는지, 세로 스크롤은 그대로 되는지
+    - 화면 왼쪽 가장자리에서 시작한 스와이프가 브라우저 "뒤로 가기"와 겹쳐 페이지를 벗어나지 않는지 (특히 iOS 인앱). 겹치면 ◀ ▶ 버튼으로는 넘어가는지
+    - 스와이프 끝이 장식 위일 때 장식이 눌린 것으로 처리되지 않는지 (잠금 안내 토스트·편지 모달이 뜨면 안 됨)
+    - 처음 / ◀ / ▶ / 최신 버튼이 손가락으로 누르기 충분한지, 작은 화면(320px 폭)에서 한 줄에 들어가는지
+    - 2번째 이후 트리에서 "스토리용 이미지 저장"을 누르면 보고 있는 트리가 그대로 저장되는지 (장식이 반투명하게 찍히거나 넘기는 중간 상태가 찍히지 않는지)
+    - `&added=1`: 마지막 트리가 열리고 새 장식이 pop-in 되는지
+    - 저사양 폰에서 넘길 때 끊김이 없는지, "동작 줄이기"(iOS)·"애니메이션 삭제"(Android)를 켜면 장식이 바로 바뀌는지
+    - VoiceOver·TalkBack에서 "이전 트리"/"다음 트리" 버튼과 "트리 4개 중 2번째 트리" 안내가 읽히는지
+  - 산출물: 문제가 있으면 이슈로 등록 (client 라벨, 제목에 "C3 트리 넘김"). 고칠 파일은 `components/TreeView.tsx`(스와이프 기준 `SWIPE_MIN`, 버튼), `components/TreeScene.tsx`(`.orn-page`), `app/globals.css`(`page-in-k`)
+
+- [x] **데모 주인 화면 미리보기 (`?owner=1`, C1 지원)** — 📱 클라이언트. 타임라인에 번호를 붙여 옮겨 주세요 (C1의 선행 작업). 규칙은 `spec.md` 4.2.
+  - 데모 모드(`demoMode`)에서만 `/t/demo?owner=1`이면 주인 화면(공유 버튼·스토리용 이미지 저장·내 페이지)을 그린다. Supabase가 설정된 서버에서는 무시.
+  - 고친 파일: `app/t/[slug]/page.tsx`(프론트엔드 소유 — 와장창프론트엔드 리뷰 필요), `components/TreeView.tsx`, `lib/data.ts`(서버 소유 — 민준 리뷰 필요)
+  - 공개 후(`?owner=1&dday=0`)에는 장식을 누르면 가짜 데모 편지가 열린다 (세 번째 장식이 고백 편지). 데모 `getLetters()`를 고쳤으므로 `lib/data.ts`(서버 소유 — 민준 리뷰 필요)도 포함. `?fill=`로 복제된 장식은 편지가 없어 열리지 않는다.
+
+- [ ] **C2 실기기 확인 (사람 몫 남음)** — 📱 클라이언트. C2의 자동 측정·개선은 끝났고 실기기 확인이 남았습니다. 체크리스트·결과 기록 양식·이슈 올리는 법은 [`docs/qa-c2-device.md`](./docs/qa-c2-device.md), 규칙은 `spec.md` 4.2 "애니메이션 성능 규칙".
+  - 한 일 (헤드리스 Chromium, 375px, CPU 4~6배 스로틀): 눈 30fps·탭 가려지면 정지, 전구를 SVG blur 필터에서 HTML `box-shadow`로, 무지개·별 빛을 opacity 전환으로, 동작 줄이기 대응. 메인 스레드 일 약 25~45% 감소(12/25 화면은 래스터 227→0ms/초). 표는 문서 1장.
+  - 남은 일: iOS Safari / Android Chrome / 저사양 폰에서 문서 2장 A~F 확인 → 문제는 `client` 라벨 이슈(라벨을 먼저 만들어야 함) → 다 끝나면 타임라인에서 C2 완료 체크. 위 "트리 넘김(C3) 실기기 QA" 중 실기기 항목은 문서 2장 B·F에 넣었습니다 (인앱 브라우저 항목은 C1).
+  - 고친 파일: `components/Snow.tsx`, `components/TreeScene.tsx`, `app/globals.css`, 새 파일 `scripts/perf-measure.mjs`, `docs/qa-c2-device.md`

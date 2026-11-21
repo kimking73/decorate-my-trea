@@ -28,6 +28,18 @@ export async function createClient() {
   );
 }
 
+/**
+ * 쿠키 없이 anon 권한으로만 동작하는 클라이언트 — 누가 봐도 같은 공개 데이터(통계, 공개 시각)를
+ * 여러 요청이 함께 캐시할 때만 쓴다. 사용자별 RLS가 걸린 조회에는 쓰지 않는다 (spec.md 4.5).
+ */
+export function createPublicClient() {
+  return createJsClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+}
+
 /** 서버 전용 관리자 클라이언트 (RLS 우회) — 편지 삽입에만 사용 */
 export function createAdminClient() {
   return createJsClient(

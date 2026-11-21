@@ -44,6 +44,9 @@ const BULBS = GARLANDS.flatMap(([x0, y0, cx, cy, x1, y1]) =>
 // 하루에 하나씩 켜지는 순서 — 트리 전체에 흩어지도록 (7 과 24 는 서로소)
 const LIGHT_ORDER = Array.from({ length: TOTAL_BULBS }, (_, j) => (j * 7) % TOTAL_BULBS);
 const BULB_COLORS = ["#ffd84d", "#ff5a6e", "#5ab0ff", "#7dff9a"];
+// 전구가 놓이는 세로 구간(SVG y). 전구 묶음 레이어를 이 띠 크기로만 만들어 무지개 때 겹치는 레이어 4장의 메모리를 줄인다.
+const BAND_TOP = 115;
+const BAND_H = 230;
 
 type Props = {
   theme: string;
@@ -70,8 +73,11 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
   const p = season.progress;
   const lit = new Set(LIGHT_ORDER.slice(0, season.bulbsOn));
   const allOn = chase || season.revealed;
+  const rainbow = season.revealed && !chase;
   const starGlow = season.revealed || season.daysLeft <= 7 || chase;
   const gifts = season.revealed ? 3 : Math.max(0, Math.min(3, 4 - season.daysLeft));
+
+  const star = starMode === "aplus" ? "🅰️" : "⭐";
 
   function flash(msg: string) {
     setToast(msg);
@@ -112,10 +118,6 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
           <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
             <feDropShadow dx="0" dy="4" stdDeviation="4" floodOpacity=".25" />
           </filter>
-          <filter id="bulbGlow" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur stdDeviation="2.4" result="b" />
-            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
         </defs>
 
         <rect x="132" y="315" width="36" height="40" rx="4" fill="#7a4b2a" />
@@ -140,24 +142,39 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
           return <path d={`M150 ${t.ay} L${150 + w} ${t.ay + d} Q${150 + w / 2} ${t.ay + d + 5} 150 ${t.ay + d - 2} Q${150 - w / 2} ${t.ay + d + 5} ${150 - w} ${t.ay + d} Z`} fill="#fff" />;
         })()}
 
-        {/* 전구 줄 + 전구 */}
+        {/* 전구 줄 (전구는 SVG 밖, 아래 .bulbs) */}
         {GARLANDS.map(([x0, y0, cx, cy, x1, y1], i) => (
           <path key={`g${i}`} d={`M${x0} ${y0 + 3} Q${cx} ${cy + 3} ${x1} ${y1 + 3}`} stroke="#22301f" strokeWidth="1.2" fill="none" opacity=".7" />
         ))}
-        {BULBS.map(([x, y], i) => {
-          const on = allOn || lit.has(i);
-          return (
-            <circle
-              key={`b${i}`} cx={x} cy={y} r={on ? 3.8 : 3.2}
-              fill={on ? BULB_COLORS[i % BULB_COLORS.length] : "#59606a"}
-              opacity={on ? 1 : 0.75}
-              filter={on ? "url(#bulbGlow)" : undefined}
-              className={on ? (chase ? "bulb-chase" : season.revealed ? "bulb-rainbow" : "bulb-on") : undefined}
-              style={on ? { animationDelay: chase ? `${i * 0.06}s` : `${(i % 6) * 0.35}s` } : undefined}
-            />
-          );
-        })}
       </svg>
+
+      {/* 전구. SVG 필터(feGaussianBlur) 대신 HTML + box-shadow 라서 깜빡임(opacity)은 합성 단계에서만 처리된다.
+          무지개(12/25~)는 색을 한 칸씩 민 전구 묶음 4장을 겹쳐 놓고 opacity 로 번갈아 보여 준다 — 색(color)을
+          직접 애니메이션하면 매 프레임 메인 스레드에서 다시 그려야 한다 (C2 측정). */}
+      {(rainbow ? [0, 1, 2, 3] : [0]).map((k) => (
+        <div
+          key={rainbow ? `r${k}` : "b"}
+          className={`pointer-events-none absolute inset-x-0 ${rainbow ? "bulbs-rainbow" : ""}`}
+          style={{ top: `${(BAND_TOP / 370) * 100}%`, height: `${(BAND_H / 370) * 100}%`, animationDelay: rainbow ? `${k * 0.75 - 3}s` : undefined }}
+          aria-hidden
+        >
+          {BULBS.map(([x, y], i) => {
+            const on = allOn || lit.has(i);
+            return (
+              <span
+                key={i}
+                className={`bulb ${on ? `bulb-lit ${chase ? "bulb-chase" : rainbow ? "" : "bulb-on"}` : ""}`}
+                style={{
+                  left: `${(x / 300) * 100}%`, top: `${((y - BAND_TOP) / BAND_H) * 100}%`,
+                  width: `${((on ? 7.6 : 6.4) / 300) * 100}%`,
+                  color: on ? BULB_COLORS[(i + k) % BULB_COLORS.length] : "#59606a",
+                  animationDelay: on && !rainbow ? (chase ? `${i * 0.06}s` : `${(i % 6) * 0.35}s`) : undefined,
+                }}
+              />
+            );
+          })}
+        </div>
+      ))}
 
       {/* 꼭대기 별 */}
       <button
@@ -165,12 +182,15 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
         type="button"
         onClick={onStar}
         aria-label="트리 꼭대기 별"
-        className={`absolute left-1/2 top-[1%] -translate-x-1/2 text-4xl ${starGlow ? "twinkle" : "opacity-80"} ${starBurst ? "star-burst" : ""}`}
+        className={`absolute left-1/2 top-[1%] -translate-x-1/2 text-4xl ${starGlow ? "" : "opacity-80"} ${starBurst ? "star-burst" : ""}`}
       >
-        {starMode === "aplus" ? "🅰️" : "⭐"}
+        {/* 빛나는 별: 약한 빛(고정) 위에 강한 빛 복사본을 겹쳐 opacity 만 움직인다 (filter 를 애니메이션하면 매 프레임 다시 그린다) */}
+        <span className={starGlow ? "twinkle" : undefined}>{star}</span>
+        {starGlow && <span className="twinkle-glow" aria-hidden>{star}</span>}
       </button>
 
-      {/* 장식(편지) */}
+      {/* 장식(편지). 페이지가 바뀌면 key가 바뀌어 장식 묶음만 다시 들어온다 (.page-anim 안에서만 애니메이션). */}
+      <div key={ornaments[0]?.id ?? "empty"} className="orn-page pointer-events-none absolute inset-0">
       {ornaments.slice(0, SLOTS_PER_PAGE).map((o, i) => {
         const [x, y] = SLOTS[i];
         const orn = findOrnament(o.ornament_type);
@@ -179,7 +199,7 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
             key={o.id}
             type="button"
             onClick={() => onOrnamentClick?.(o)}
-            className={`absolute flex w-[15%] -translate-x-1/2 -translate-y-1/2 flex-col items-center ${o.isNew ? "pop-in" : ""}`}
+            className={`pointer-events-auto absolute flex w-[15%] -translate-x-1/2 -translate-y-1/2 flex-col items-center ${o.isNew ? "pop-in" : ""}`}
             style={{ left: `${(x / 300) * 100}%`, top: `${(y / 370) * 100}%` }}
             aria-label={`${o.nickname}의 ${orn.label} 장식`}
           >
@@ -196,6 +216,7 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
           </button>
         );
       })}
+      </div>
 
       {/* D-3 부터 선물 상자 */}
       {[[24, 91], [72, 92], [61, 94]].slice(0, gifts).map(([l, t], i) => (
