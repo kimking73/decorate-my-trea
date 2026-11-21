@@ -25,7 +25,8 @@ export async function generateMetadata({ params, searchParams }: Params): Promis
   // OG 주소에는 키를 넣지 않는다. 키가 붙은 주소는 검색에 잡히지 않게 (spec.md 4.6)
   return {
     title, description, openGraph: { title, description, url: `${SITE_URL}/t/${slug}` },
-    ...(readKeyParam(key) ? { robots: { index: false, follow: false } } : {}),
+    // 다른 사이트로 이동·리소스 요청 시 키가 든 주소가 Referer 로 새지 않게 (오래된 인앱 WebView 기본값 대비)
+    ...(readKeyParam(key) ? { robots: { index: false, follow: false }, referrer: "no-referrer" as const } : {}),
   };
 }
 
