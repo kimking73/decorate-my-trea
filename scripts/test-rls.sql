@@ -19,7 +19,18 @@ grant execute on function auth.uid() to anon, authenticated;
 alter default privileges in schema public grant references, trigger, truncate on tables to anon, authenticated, service_role;
 \i supabase/migrations/0001_init.sql
 \i supabase/migrations/0002_submit_letter.sql
+-- 0003 이전에 만든 교수님 트리 (운영 DB 에 이미 있는 트리 흉내) — 0003 이 닫아야 한다
+insert into auth.users (id) values ('00000000-0000-0000-0000-00000000000c');
+insert into public.trees (id, owner_id, slug, title, owner_name, kind) values
+ ('10000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-00000000000c', 'prof-old', '예전 교수님 트리', '예전 교수님', 'professor'),
+ ('10000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-00000000000c', 'user-old', '예전 일반 트리', '예전 학생', 'user');
 \i supabase/migrations/0003_professor_open_likes_tree_color.sql
+\echo '--- 0003 이전 트리: 교수님 트리는 닫히고 일반 트리는 열린 채'
+do $$ begin
+  if (select is_open from public.trees where slug = 'prof-old') then raise exception 'SHOULD CLOSE old professor tree'; end if;
+  if not (select is_open from public.trees where slug = 'user-old') then raise exception 'SHOULD KEEP user tree open'; end if;
+  raise notice 'ok: old professor tree closed, user tree open';
+end $$;
 \i supabase/migrations/0004_table_grants.sql
 
 insert into auth.users (id, raw_user_meta_data) values
@@ -70,6 +81,13 @@ do $$ begin
   values ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-00000000000b', 'b-tree', '내 트리', '나');
   raise notice 'ok: tree created by owner';
 end $$;
+\echo '--- 트리를 만들 때 claim_code·is_open 지정 (실패해야 함 — INSERT 는 컬럼 단위)'
+do $$ begin insert into public.trees (owner_id, slug, title, claim_code) values ('00000000-0000-0000-0000-00000000000b','b-tree-2','x','GUESSED1');
+  raise exception 'SHOULD FAIL';
+exception when insufficient_privilege then raise notice 'ok: claim_code insert denied'; end $$;
+do $$ begin insert into public.trees (owner_id, slug, title, is_open) values ('00000000-0000-0000-0000-00000000000b','b-tree-3','x',false);
+  raise exception 'SHOULD FAIL';
+exception when insufficient_privilege then raise notice 'ok: is_open insert denied'; end $$;
 \echo '--- 일반 유저가 is_admin 수정 (실패해야 함)'
 do $$ begin update public.profiles set is_admin = true; raise exception 'ESCALATED';
 exception when insufficient_privilege then raise notice 'ok: is_admin locked'; end $$;
@@ -166,7 +184,7 @@ do $$ begin
   perform public.admin_set_tree_open('10000000-0000-0000-0000-000000000002', true);
   raise notice 'ok: admin opened tree';
 end $$;
-select slug, kind, department, is_open, like_count from public.admin_list_special_trees();
+select slug, title, kind, department, is_open, like_count from public.admin_list_special_trees();
 reset role; set role service_role;
 do $$
 declare v jsonb;
@@ -176,6 +194,16 @@ begin
     raise exception 'expected ok after open, got %', v;
   end if;
   raise notice 'ok: 열린 뒤에는 저장';
+end $$;
+
+\echo '--- 0003 을 다시 실행해도 관리자가 연 교수님 트리는 다시 닫히지 않는다'
+reset role;
+\i supabase/migrations/0003_professor_open_likes_tree_color.sql
+do $$ begin
+  if not (select is_open from public.trees where id = '10000000-0000-0000-0000-000000000002') then
+    raise exception 'SHOULD STAY OPEN after re-running 0003';
+  end if;
+  raise notice 'ok: re-run 0003 keeps opened tree open';
 end $$;
 
 \echo '=== 공개 시각을 과거로 ==='

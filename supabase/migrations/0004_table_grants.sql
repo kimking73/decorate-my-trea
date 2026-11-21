@@ -18,7 +18,14 @@
 -- =========================================================
 
 -- 트리 만들기·지우기 (정책: create own tree · delete own tree)
-grant insert, delete on public.trees to authenticated;
+-- INSERT 는 앱이 넣는 컬럼만 준다. claim_code(관리자 함수 전용)·is_open(admin_set_tree_open 전용)·
+-- created_at 은 사용자가 정할 수 없다. 테이블 단위로 이미 준 INSERT 가 있으면 먼저 거둔다
+-- (운영 DB 에는 이 파일의 이전 버전이 적용돼 있다 — 다시 실행하면 컬럼 단위로 바뀐다).
+-- tree_color 는 만든 뒤 update 로만 바꾼다 (0003 의 grant update (tree_color)).
+revoke insert on public.trees from authenticated;
+grant insert (id, owner_id, slug, title, owner_name, theme, department, kind, description)
+  on public.trees to authenticated;
+grant delete on public.trees to authenticated;
 
 -- 내 프로필 읽기 (정책: own profile — 자기 행만)
 grant select (id, display_name, is_admin, created_at) on public.profiles to authenticated;

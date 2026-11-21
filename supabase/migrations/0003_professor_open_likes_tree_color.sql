@@ -5,8 +5,19 @@
 -- =========================================================
 
 -- ---------- trees: 허락 상태 · 트리 색 ----------
--- is_open = false 는 "허락 대기" — 편지를 받지 않는다. 기본값은 true 라서 기존 트리는 그대로 열려 있다.
-alter table public.trees add column if not exists is_open boolean not null default true;
+-- is_open = false 는 "허락 대기" — 편지를 받지 않는다. 기본값은 true 라서 기존 일반 트리는 그대로 열려 있다.
+-- 이미 있는 교수님 트리는 허락을 받지 않았으므로 닫는다 (spec.md 5.3). 이미 달린 편지는 지우지 않고, 트리를 열면 다시 보인다.
+-- 닫기는 컬럼을 처음 만들 때 한 번만 한다 — 이 파일을 다시 실행해도 관리자가 연 트리가 다시 닫히지 않게.
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'trees' and column_name = 'is_open'
+  ) then
+    alter table public.trees add column is_open boolean not null default true;
+    update public.trees set is_open = false where kind = 'professor';
+  end if;
+end $$;
 alter table public.trees add column if not exists tree_color text;
 
 alter table public.trees drop constraint if exists trees_tree_color_len;
@@ -138,10 +149,11 @@ grant execute on function public.admin_set_tree_open(uuid, boolean) to authentic
 comment on function public.admin_set_tree_open(uuid, boolean) is '관리자: 교수님 트리 허락 상태 바꾸기 — spec.md 4.6';
 
 -- 관리자 목록에 학과·허락 상태·관심 수를 더한다 (반환 타입이 바뀌므로 새로 만든다)
+-- title 은 /admin 목록의 링크 글자로 쓰이므로 계속 돌려준다.
 drop function if exists public.admin_list_special_trees();
 create or replace function public.admin_list_special_trees()
 returns table (
-  id uuid, slug text, owner_name text, kind text, claim_code text,
+  id uuid, slug text, title text, owner_name text, kind text, claim_code text,
   letter_count bigint, department text, is_open boolean, like_count bigint
 )
 language plpgsql stable security definer set search_path = public as $$
@@ -150,7 +162,7 @@ begin
     raise exception 'not allowed';
   end if;
   return query
-    select t.id, t.slug, t.owner_name, t.kind, t.claim_code,
+    select t.id, t.slug, t.title, t.owner_name, t.kind, t.claim_code,
            (select count(*) from public.letters l where l.tree_id = t.id),
            t.department, t.is_open,
            (select count(*) from public.professor_likes pl where pl.tree_id = t.id)
