@@ -32,6 +32,7 @@ do $$ begin
   raise notice 'ok: old professor tree closed, user tree open';
 end $$;
 \i supabase/migrations/0004_table_grants.sql
+\i supabase/migrations/0005_professor_read_link.sql
 
 insert into auth.users (id, raw_user_meta_data) values
  ('00000000-0000-0000-0000-00000000000a', '{"name":"주인"}'),
@@ -205,6 +206,91 @@ do $$ begin
   end if;
   raise notice 'ok: re-run 0003 keeps opened tree open';
 end $$;
+-- 0003 은 admin_list_special_trees() 를 다시 만들어 0005 의 read_key 를 빼므로 0005 도 다시 실행한다
+-- (운영 DB 에서도 0003 을 다시 돌렸다면 0005 를 이어서 돌린다. 0005 는 재실행해도 안전)
+\i supabase/migrations/0005_professor_read_link.sql
+
+-- =========================================================
+-- 0005: 교수님 비밀 열람 링크 (spec.md 4.6 · 5.3) — 공개 전
+-- 키는 세션 설정 test.read_key 에 담아 역할을 바꿔도 쓴다
+-- =========================================================
+\echo '--- 열람 키: 비관리자·anon 은 발급 불가'
+reset role;
+-- 숨김 편지 (열람 링크에도 나오면 안 됨)
+insert into public.letters (tree_id, ornament_type, nickname, content, hidden, reported) values
+ ('10000000-0000-0000-0000-000000000003', 'ball', '숨김', '숨긴 편지', true, true);
+set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  perform public.admin_issue_read_key('10000000-0000-0000-0000-000000000003');
+  raise exception 'SHOULD NOT ISSUE';
+exception when raise_exception then raise notice 'ok: non-admin cannot issue read key'; end $$;
+reset role; set role anon;
+do $$ begin
+  perform public.admin_issue_read_key('10000000-0000-0000-0000-000000000003');
+  raise exception 'SHOULD NOT ISSUE';
+exception when insufficient_privilege then raise notice 'ok: anon cannot issue read key'; end $$;
+
+\echo '--- 열람 키: 관리자는 교수님 트리에만 발급, 다시 발급하면 이전 키 무효'
+reset role; set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000a';
+do $$ begin
+  perform public.admin_issue_read_key('10000000-0000-0000-0000-000000000001');
+  raise exception 'SHOULD NOT ISSUE for user tree';
+exception when raise_exception then
+  if sqlerrm <> 'not found' then raise; end if;
+  raise notice 'ok: user tree has no read key';
+end $$;
+select set_config('test.old_key', public.admin_issue_read_key('10000000-0000-0000-0000-000000000003'), false) is not null as issued;
+select set_config('test.read_key', public.admin_issue_read_key('10000000-0000-0000-0000-000000000003'), false) is not null as reissued;
+do $$ begin
+  if char_length(current_setting('test.read_key')) < 32 then raise exception 'key too short'; end if;
+  if current_setting('test.read_key') = current_setting('test.old_key') then raise exception 'reissue returned same key'; end if;
+  if public.check_read_key('prof-lee', current_setting('test.old_key')) then raise exception 'OLD KEY STILL VALID'; end if;
+  if not public.check_read_key('prof-lee', current_setting('test.read_key')) then raise exception 'NEW KEY INVALID'; end if;
+  raise notice 'ok: reissue invalidates old key';
+end $$;
+\echo '--- 열람 키: 관리자 목록에는 보인다'
+select slug, read_key is not null as has_key from public.admin_list_special_trees() order by slug;
+
+\echo '--- 열람 키: 관리자도 컬럼을 직접 읽거나 바꾸지 못한다 (함수로만)'
+do $$ begin perform read_key from public.trees; raise exception 'LEAK';
+exception when insufficient_privilege then raise notice 'ok: read_key hidden (admin direct select)'; end $$;
+do $$ begin update public.trees set read_key = 'guessed-key-0000000' where id = '10000000-0000-0000-0000-000000000003';
+  raise exception 'SHOULD NOT UPDATE';
+exception when insufficient_privilege then raise notice 'ok: read_key update denied'; end $$;
+
+\echo '--- 열람 키: 일반 유저·anon 은 read_key 컬럼을 못 읽고, 직접 넣지도 못한다'
+set request.jwt.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin perform read_key from public.trees; raise exception 'LEAK';
+exception when insufficient_privilege then raise notice 'ok: read_key hidden (authenticated)'; end $$;
+do $$ begin insert into public.trees (owner_id, slug, title, read_key) values ('00000000-0000-0000-0000-00000000000b','b-tree-4','x','guessed-key-0000000');
+  raise exception 'SHOULD FAIL';
+exception when insufficient_privilege then raise notice 'ok: read_key insert denied'; end $$;
+do $$ begin update public.trees set read_key = 'guessed-key-0000000' where id = '10000000-0000-0000-0000-000000000004';
+  raise exception 'SHOULD NOT UPDATE';
+exception when insufficient_privilege then raise notice 'ok: read_key update denied (owner)'; end $$;
+reset role; set role anon;
+do $$ begin perform read_key from public.trees; raise exception 'LEAK';
+exception when insufficient_privilege then raise notice 'ok: read_key hidden (anon)'; end $$;
+
+\echo '--- 열람 키: 공개 전에는 맞는 키여도 본문 0건 (키 확인만 true)'
+do $$ begin
+  if not public.check_read_key('prof-lee', current_setting('test.read_key')) then raise exception 'key should be valid'; end if;
+  if (select count(*) from public.get_letters_by_read_key('prof-lee', current_setting('test.read_key'))) <> 0 then
+    raise exception 'LEAK: letters before reveal';
+  end if;
+  raise notice 'ok: 0 letters before reveal';
+end $$;
+\echo '--- 열람 키: 빈 키·null·짧은 키·틀린 키는 거부'
+do $$ begin
+  if public.check_read_key('prof-lee', '') or coalesce(public.check_read_key('prof-lee', null), false)
+     or public.check_read_key('prof-lee', 'short') or public.check_read_key('prof-lee', 'wrong-key-wrong-key-wrong-key-00') then
+    raise exception 'bad key accepted';
+  end if;
+  -- 키가 없는 교수님 트리(prof-kim)에 null 키로 맞추기
+  if coalesce(public.check_read_key('prof-kim', null), false) then raise exception 'null key matched null read_key'; end if;
+  if (select count(*) from public.get_letters_by_read_key('prof-kim', null)) <> 0 then raise exception 'null key returned letters'; end if;
+  raise notice 'ok: empty/null/short/wrong key rejected';
+end $$;
 
 \echo '=== 공개 시각을 과거로 ==='
 reset role; update public.app_config set reveal_at = now() - interval '1 minute';
@@ -220,6 +306,41 @@ reset role; set role anon;
 do $$ begin perform 1 from public.letters; raise exception 'LEAK';
 exception when insufficient_privilege then raise notice 'ok: anon denied'; end $$;
 select ornament_type, nickname from public.get_ornaments('10000000-0000-0000-0000-000000000001');
+
+\echo '--- 공개 후 열람 키 (anon): 맞는 키만 본문 (숨김 제외), 틀린 키·이전 키·다른 트리는 0건'
+do $$
+declare n int;
+begin
+  select count(*) into n from public.get_letters_by_read_key('prof-lee', current_setting('test.read_key'));
+  if n <> 1 then raise exception 'expected 1 visible letter with key, got %', n; end if;
+  if exists (select 1 from public.get_letters_by_read_key('prof-lee', current_setting('test.read_key')) where content = '숨긴 편지') then
+    raise exception 'LEAK: hidden letter';
+  end if;
+  if (select count(*) from public.get_letters_by_read_key('prof-lee', 'wrong-key-wrong-key-wrong-key-00')) <> 0 then raise exception 'wrong key returned letters'; end if;
+  if (select count(*) from public.get_letters_by_read_key('prof-lee', current_setting('test.old_key'))) <> 0 then raise exception 'old key returned letters'; end if;
+  if (select count(*) from public.get_letters_by_read_key('prof-lee', '')) <> 0 then raise exception 'empty key returned letters'; end if;
+  if (select count(*) from public.get_letters_by_read_key('prof-kim', current_setting('test.read_key'))) <> 0 then raise exception 'key worked on other tree'; end if;
+  raise notice 'ok: read key letters after reveal (anon)';
+end $$;
+select nickname, content, is_confession from public.get_letters_by_read_key('prof-lee', current_setting('test.read_key'));
+\echo '--- 공개 후 열람 키 (로그인한 다른 유저도 링크가 있으면 읽음)'
+reset role; set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  if (select count(*) from public.get_letters_by_read_key('prof-lee', current_setting('test.read_key'))) <> 1 then
+    raise exception 'expected 1 letter for authenticated with key';
+  end if;
+  raise notice 'ok: read key works for authenticated';
+end $$;
+\echo '--- 공개 후 열람 키: 닫힌(허락 대기) 트리는 0건'
+reset role; update public.trees set is_open = false where id = '10000000-0000-0000-0000-000000000003';
+set role anon;
+do $$ begin
+  if (select count(*) from public.get_letters_by_read_key('prof-lee', current_setting('test.read_key'))) <> 0 then
+    raise exception 'closed tree returned letters';
+  end if;
+  raise notice 'ok: closed tree returns no letters';
+end $$;
+reset role; update public.trees set is_open = true where id = '10000000-0000-0000-0000-000000000003';
 
 -- =========================================================
 -- 0002 submit_letter(): service_role 만 실행 · 작성 제한 (spec.md 4.4 · 5.3)

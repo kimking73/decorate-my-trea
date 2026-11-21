@@ -2,9 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminCreateForm from "@/components/AdminCreateForm";
 import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
+import ReadLinkBox from "@/components/ReadLinkBox";
 import Toast from "@/components/Toast";
-import { adminResolve, adminSetTreeOpen } from "@/app/actions";
-import { DEPARTMENTS } from "@/lib/constants";
+import { adminIssueReadLink, adminResolve, adminSetTreeOpen } from "@/app/actions";
+import { DEPARTMENTS, SITE_URL } from "@/lib/constants";
 import { getAdminSpecialTrees, getProfile, getReportedLetters, getUser, loginPath } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ type FilterId = (typeof FILTERS)[number]["id"];
 const TOASTS: Record<string, string> = {
   opened: "트리를 열었어요",
   closed: "트리를 닫았어요",
+  link_issued: "열람 링크를 만들었어요. 복사해서 교수님께 보내 주세요",
   failed: "저장하지 못했어요. 잠시 후 다시 시도해 주세요.",
   demo: "데모라 저장되지 않아요",
 };
@@ -146,6 +148,38 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <button type="button" disabled title="준비 중" className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold opacity-50">
                     정보 수정
                   </button>
+                </div>
+                {/* 교수님 비밀 열람 링크 (spec.md 4.6, T9): 로그인 없이 12/25 0시부터 편지를 읽는 링크 */}
+                <div className="flex flex-col gap-2 border-t border-slate-200 pt-3">
+                  <p className="text-xs font-bold text-slate-600">교수님 열람 링크</p>
+                  {t.read_key ? (
+                    <>
+                      <ReadLinkBox url={`${SITE_URL}/t/${t.slug}?key=${t.read_key}`} name={t.owner_name} />
+                      <form action={adminIssueReadLink}>
+                        <input type="hidden" name="tree_id" value={t.id} />
+                        <ConfirmSubmitButton
+                          confirm={`${t.owner_name} 열람 링크를 다시 만들까요? 이전 링크는 더 이상 쓸 수 없어요.`}
+                          pendingLabel="만드는 중…" className="flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 text-sm font-bold"
+                        >
+                          링크 다시 만들기
+                        </ConfirmSubmitButton>
+                      </form>
+                      <p className="text-xs leading-5 text-slate-500">링크를 가진 사람은 로그인 없이 12월 25일 0시부터 편지를 읽을 수 있어요. 교수님께만 보내 주세요. 다시 만들면 이전 링크는 못 써요.</p>
+                    </>
+                  ) : (
+                    <>
+                      <form action={adminIssueReadLink}>
+                        <input type="hidden" name="tree_id" value={t.id} />
+                        <ConfirmSubmitButton
+                          confirm={`${t.owner_name} 열람 링크를 만들까요? 링크를 가진 사람은 크리스마스에 편지를 읽을 수 있어요.`}
+                          pendingLabel="만드는 중…" className="flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-300 text-sm font-bold"
+                        >
+                          열람 링크 만들기
+                        </ConfirmSubmitButton>
+                      </form>
+                      <p className="text-xs leading-5 text-slate-500">교수님은 이 링크로 로그인 없이 12월 25일 0시부터 편지를 읽어요.</p>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

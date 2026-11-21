@@ -25,6 +25,8 @@ type Props = {
   demo: boolean;
   /** 주인 화면(= 내 트리) 아래 메뉴. 프론트엔드 OwnerMenu (spec.md 2.2, F10) */
   ownerMenu?: ReactNode;
+  /** 교수님 비밀 열람 링크(`?key=`)가 맞을 때: 주인처럼 편지를 읽지만 공유·주인 메뉴·신고는 없다 (spec.md 2.2, 4.6) */
+  reader?: boolean;
 };
 
 // 스와이프로 인정하는 최소 가로 이동(px). 세로 스크롤과 구분하려고 가로가 세로의 1.5배 이상일 때만 넘긴다.
@@ -81,8 +83,11 @@ export default function TreeView(p: Props) {
   const letterMap = useMemo(() => new Map((p.letters ?? []).map((l) => [l.id, l])), [p.letters]);
   const isSpecial = p.tree.kind !== "user";
   const revealed = p.season.revealed;
-  // 0시에 요청을 흩는 범위: 편지를 읽을 주인은 짧게, 방문자는 길게 (spec.md 4.5)
-  const revealPhase = useRevealRefresh(p.revealAt, revealed, p.isOwner ? 30_000 : 120_000);
+  // 편지를 읽을 수 있는 화면: 주인 또는 교수님 열람 링크 (권한은 서버·DB가 이미 판단해 letters 로 넘겼다)
+  const reader = !p.isOwner && !!p.reader;
+  const canRead = p.isOwner || reader;
+  // 0시에 요청을 흩는 범위: 편지를 읽을 주인·열람 링크는 짧게, 방문자는 길게 (spec.md 4.5)
+  const revealPhase = useRevealRefresh(p.revealAt, revealed, canRead ? 30_000 : 120_000);
 
   function say(m: string) {
     setNotice(m);
@@ -91,7 +96,7 @@ export default function TreeView(p: Props) {
 
   function onOrnament(o: SceneOrnament) {
     if (!revealed) return say(`🔒 편지는 크리스마스에 열려요! (D-${p.season.daysLeft})`);
-    if (!p.isOwner) return say("🤫 편지는 트리 주인만 읽을 수 있어요");
+    if (!canRead) return say("🤫 편지는 트리 주인만 읽을 수 있어요");
     const l = letterMap.get(o.id);
     if (l) setOpen(l);
   }
@@ -145,12 +150,12 @@ export default function TreeView(p: Props) {
         {p.demo && (
           <>
             <p className="mb-2 rounded-full bg-yellow-300 px-3 py-1 text-xs text-black">데모 모드 — Supabase 연결 전 미리보기</p>
-            <p className="mb-2 flex items-center gap-2 text-xs">
+            {!reader && <p className="mb-2 flex items-center gap-2 text-xs">
               {p.isOwner && <span className="rounded-full bg-pink-300 px-3 py-1 text-black">데모: 주인 화면 미리보기</span>}
               <Link href={ownerToggleHref} className="rounded-full bg-white/15 px-3 py-1 underline">
                 {p.isOwner ? "방문자 화면으로 보기" : "주인 화면으로 보기"}
               </Link>
-            </p>
+            </p>}
           </>
         )}
 
@@ -216,7 +221,20 @@ export default function TreeView(p: Props) {
         )}
 
         <div className="mt-5 flex w-full flex-col gap-3">
-          {p.isOwner ? (
+          {reader ? (
+            <>
+              <p className="text-center text-sm opacity-90">
+                {revealed
+                  ? count > 0 ? "장식을 눌러 학생들의 편지를 읽어보세요 💌" : "아직 달린 편지가 없어요"
+                  : <>편지는 <b>12월 25일 0시</b>에 열려요. 그때 이 링크로 다시 와 주세요!</>}
+              </p>
+              <p className="text-center text-xs opacity-75">🔑 교수님 전용 열람 링크예요. 다른 사람에게 보내지 말아 주세요.</p>
+              {p.demo && <p className="text-center text-xs"><span className="rounded-full bg-pink-300 px-3 py-1 text-black">데모: 교수님 열람 링크</span></p>}
+              <Link href={p.isLoggedIn ? "/me" : "/login"} className="btn btn-light w-full">
+                🎄 {p.isLoggedIn ? "내 트리 보러가기" : "나도 트리 만들기"}
+              </Link>
+            </>
+          ) : p.isOwner ? (
             <>
               {!revealed && (
                 <p className="text-center text-sm opacity-90">
@@ -242,7 +260,7 @@ export default function TreeView(p: Props) {
         </div>
       </div>
 
-      {open && <LetterModal letter={open} onClose={() => setOpen(null)} onReport={p.demo ? undefined : report} />}
+      {open && <LetterModal letter={open} onClose={() => setOpen(null)} onReport={p.demo || reader ? undefined : report} />}
     </main>
   );
 }

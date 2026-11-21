@@ -222,8 +222,10 @@ export async function getRevealAt(): Promise<Date> {
   }).catch(() => REVEAL_AT);
 }
 
+export type LetterRow = OrnamentRow & { content: string; is_confession: boolean };
+
 /** 편지 본문 — RLS 가 "주인 + 공개 이후" 만 허용하므로 그 외에는 빈 배열 */
-export async function getLetters(treeId: string) {
+export async function getLetters(treeId: string): Promise<LetterRow[]> {
   // 데모 모드: 가짜 본문을 돌려준다 (DB 가 없으므로 RLS 와 무관, 실서버에서는 이 줄을 타지 않는다).
   // 세 번째 편지만 고백 편지 — "💘 고백 편지" 라벨 확인용.
   if (!isConfigured) {
@@ -237,7 +239,34 @@ export async function getLetters(treeId: string) {
     .select("id, ornament_type, nickname, content, is_confession, created_at")
     .eq("tree_id", treeId)
     .order("created_at", { ascending: true });
-  return (data ?? []) as (OrnamentRow & { content: string; is_confession: boolean })[];
+  return (data ?? []) as LetterRow[];
+}
+
+// ---------- 교수님 비밀 열람 링크 (spec.md 4.6, T9) ----------
+// 데모 모드에서만 쓰는 열람 키. 실서버(isConfigured)에서는 이 값을 보지 않는다.
+const DEMO_READ_KEY = "demo";
+
+/**
+ * 열람 링크(`/t/<slug>?key=…`)로 교수님 트리 편지 읽기.
+ * `null` = 키가 틀림(방문자 화면) · 배열 = 키가 맞음. 본문은 DB가 공개 이후(is_revealed())에만 돌려주므로
+ * 공개 전이나 편지가 없으면 `[]`. 조회 실패는 throw (오류 계약, spec.md 2.3).
+ */
+export async function getLettersByReadKey(slug: string, key: string): Promise<LetterRow[] | null> {
+  if (!key) return null;
+  // 데모: 가짜 편지를 돌려주고, 공개 전/후 구분은 페이지가 ?dday 로 흉내 낸다 (DB 와 무관)
+  if (!isConfigured) {
+    const tree = DEMO_TREES.find((t) => t.slug === slug && t.kind === "professor");
+    return tree && key === DEMO_READ_KEY ? getLetters(tree.id) : null;
+  }
+  const supabase = await createClient();
+  const [valid, letters] = await Promise.all([
+    supabase.rpc("check_read_key", { p_slug: slug, p_key: key }),
+    supabase.rpc("get_letters_by_read_key", { p_slug: slug, p_key: key }),
+  ]);
+  if (valid.error) throw valid.error;
+  if (letters.error) throw letters.error;
+  if (valid.data !== true) return null;
+  return (letters.data ?? []) as LetterRow[];
 }
 
 // ---------- 교수님 목록·관리자 (spec.md 2.3, 4.6) ----------
@@ -267,6 +296,8 @@ export async function getProfessors(): Promise<ProfessorRow[]> {
 export type AdminTreeRow = {
   id: string; slug: string; title: string; owner_name: string; kind: string;
   letter_count: number; department: string | null; is_open: boolean; like_count: number;
+  /** 교수님 열람 키 (없으면 null). 관리자 화면에서 링크를 만들 때만 쓴다 (spec.md 4.6) */
+  read_key: string | null;
 };
 
 /** /admin 교수님 목록 탭 (관리자만, DB admin_list_special_trees가 is_admin() 확인) */
@@ -275,12 +306,13 @@ export async function getAdminSpecialTrees(): Promise<AdminTreeRow[]> {
     const likes = (await readDemoSession())?.likes ?? [];
     return DEMO_PROFESSORS.map((p) => ({
       ...p, title: `${p.owner_name}께 드리는 트리`, kind: "professor", like_count: p.like_count + (likes.includes(p.id) ? 1 : 0),
+      read_key: p.slug === "prof-demo" ? DEMO_READ_KEY : null,
     }));
   }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("admin_list_special_trees");
   if (error) throw error;
-  return ((data ?? []) as AdminTreeRow[]).map((t) => ({ ...t, letter_count: Number(t.letter_count), like_count: Number(t.like_count ?? 0) }));
+  return ((data ?? []) as AdminTreeRow[]).map((t) => ({ ...t, letter_count: Number(t.letter_count), like_count: Number(t.like_count ?? 0), read_key: t.read_key ?? null }));
 }
 
 export type ReportedLetter = { id: string; content: string; created_at: string; tree_title: string | null };
