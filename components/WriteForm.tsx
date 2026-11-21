@@ -93,6 +93,14 @@ export default function WriteForm({ tree, ornaments, season }: Props) {
 
   // 폰의 뒤로 가기: 2단계 기록에서 벗어나면 1단계로
   useEffect(() => {
+    // 2단계에서 새로 고치면 화면은 1단계로 시작하지만 기록에는 2단계 표시가 남는다.
+    // 지우지 않으면 다시 2단계로 갔다가 "← 장식 다시 고르기"를 눌러도 2단계에 머문다 (두 번 눌러야 1단계)
+    const st = window.history.state;
+    if (st?.[STEP_KEY] === 2) {
+      const rest = { ...st };
+      delete rest[STEP_KEY];
+      window.history.replaceState(rest, "");
+    }
     const onPop = () => setStep(window.history.state?.[STEP_KEY] === 2 ? 2 : 1);
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
