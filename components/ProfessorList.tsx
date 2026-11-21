@@ -14,7 +14,7 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
   const [query, setQuery] = useState("");
   const [promptFor, setPromptFor] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ text: string; seq: number } | null>(null);
   const [, startTransition] = useTransition();
 
   const q = query.trim();
@@ -32,8 +32,8 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
       const r = await toggleProfessorLike(p.id);
       setBusy(null);
       if ("error" in r) {
-        setToast(null);
-        setTimeout(() => setToast(r.error), 0);
+        // 같은 오류가 연달아 나도 다시 보이게 seq를 올린다 (Toast가 seq 변화로 새 알림을 띄움)
+        setToast((t) => ({ text: r.error, seq: (t?.seq ?? 0) + 1 }));
         return;
       }
       setRows((all) => all.map((x) => (x.id === p.id ? { ...x, liked_by_me: r.liked, like_count: r.count } : x)));
@@ -98,7 +98,7 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
           </li>
         ))}
       </ul>
-      <Toast message={toast} />
+      <Toast message={toast?.text ?? null} seq={toast?.seq} />
     </>
   );
 }
