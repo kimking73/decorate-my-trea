@@ -1,4 +1,4 @@
--- 로컬 Postgres 에서 Supabase 환경을 흉내 내 RLS 를 검증하는 스크립트
+-- 로컬 Postgres 에서 Supabase 환경을 흉내 내 RLS·권한을 검증하는 스크립트
 \set ON_ERROR_STOP on
 -- 사용법: createdb treetest && psql -d treetest -f scripts/test-rls.sql  (빈 DB 에서만 실행!)
 drop schema if exists auth cascade; drop schema public cascade; create schema public;
@@ -13,23 +13,37 @@ create table auth.users (id uuid primary key, raw_user_meta_data jsonb default '
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.sub', true), '')::uuid $$;
 grant usage on schema public, auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated;
-alter default privileges in schema public grant all on tables to anon, authenticated;
-alter default privileges in schema public grant all on functions to anon, authenticated;
+-- 실서버와 같은 기본 권한만 준다. 테이블 권한(SELECT·INSERT·UPDATE…)은 마이그레이션이 직접 준다.
+-- (Supabase 프로젝트에서 확인한 값: REFERENCES·TRIGGER·TRUNCATE. 여기서 ALL 로 주면
+--  실서버에서만 권한이 모자라는 경우를 테스트가 놓친다 — 0004 가 그 구멍을 메웠다)
+alter default privileges in schema public grant references, trigger, truncate on tables to anon, authenticated, service_role;
 \i supabase/migrations/0001_init.sql
 \i supabase/migrations/0002_submit_letter.sql
+\i supabase/migrations/0003_professor_open_likes_tree_color.sql
+\i supabase/migrations/0004_table_grants.sql
 
 insert into auth.users (id, raw_user_meta_data) values
  ('00000000-0000-0000-0000-00000000000a', '{"name":"주인"}'),
  ('00000000-0000-0000-0000-00000000000b', '{"name":"남"}');
 insert into public.trees (id, owner_id, slug, title) values
  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', 'owner-tree', '주인 트리');
+-- 교수님 트리: 하나는 허락 대기(is_open=false), 하나는 열림
+insert into public.trees (id, owner_id, slug, title, owner_name, kind, department, is_open) values
+ ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000a', 'prof-kim', '김 교수님 트리', '김 교수님', 'professor', 'cse', false),
+ ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-00000000000a', 'prof-lee', '이 교수님 트리', '이 교수님', 'professor', 'math', true);
 insert into public.letters (tree_id, ornament_type, nickname, content, is_confession) values
  ('10000000-0000-0000-0000-000000000001', 'ball', '친구1', '메리크리스마스', false),
  ('10000000-0000-0000-0000-000000000001', 'heart', '몰래', '좋아해', true);
 
+\echo '--- 프로필 트리거 (auth.users INSERT → profiles)'
+select id, display_name from public.profiles order by id;
+
 \echo '--- 공개 전: 주인 SELECT (0 이어야 함)'
 set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000a';
-select count(*) from public.letters;
+select count(id) from public.letters;
+\echo '--- 내 프로필 (자기 행 1 · 남의 행 0)'
+select count(id) from public.profiles where id = '00000000-0000-0000-0000-00000000000a';
+select count(id) from public.profiles where id = '00000000-0000-0000-0000-00000000000b';
 \echo '--- 공개 전: 장식 RPC (고백 여부 컬럼이 없어야 함, 닉네임 그대로)'
 select * from public.get_ornaments('10000000-0000-0000-0000-000000000001');
 select * from public.get_stats();
@@ -43,23 +57,136 @@ end $$;
 \echo '--- anon claim_code 조회 (실패해야 함)'
 do $$ begin perform claim_code from public.trees; raise exception 'LEAK';
 exception when insufficient_privilege then raise notice 'ok: claim_code hidden'; end $$;
+\echo '--- anon 공개 시각 SELECT (1행, 공개 시각 표시용)'
+select count(id) from public.app_config;
 \echo '--- 일반 유저가 professor 트리 생성 (실패해야 함)'
 reset role; set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000b';
 do $$ begin insert into public.trees (owner_id, slug, title, kind) values ('00000000-0000-0000-0000-00000000000b','prof-x','x','professor');
   raise exception 'SHOULD FAIL';
 exception when insufficient_privilege then raise notice 'ok: professor tree denied'; end $$;
+\echo '--- 주인이 자기 트리 생성 (성공해야 함 — 0004 권한 보정)'
+do $$ begin
+  insert into public.trees (id, owner_id, slug, title, owner_name)
+  values ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-00000000000b', 'b-tree', '내 트리', '나');
+  raise notice 'ok: tree created by owner';
+end $$;
 \echo '--- 일반 유저가 is_admin 수정 (실패해야 함)'
 do $$ begin update public.profiles set is_admin = true; raise exception 'ESCALATED';
 exception when insufficient_privilege then raise notice 'ok: is_admin locked'; end $$;
+
+-- =========================================================
+-- 0003: 허락 상태 · 하트 · 트리 색 (spec.md 4.6 · 4.7)
+-- =========================================================
+\echo '--- 하트: 비로그인(anon)은 실행 불가'
+reset role; set role anon;
+do $$ begin
+  perform public.toggle_professor_like('10000000-0000-0000-0000-000000000002');
+  raise exception 'SHOULD NOT LIKE';
+exception when insufficient_privilege then raise notice 'ok: anon cannot like'; end $$;
+\echo '--- 하트: 목록은 anon 도 조회 (누가 눌렀는지는 없음)'
+select slug, is_open, like_count, liked_by_me from public.list_professors();
+
+\echo '--- 하트: 로그인 사용자 1인 1개, 다시 누르면 취소'
+reset role; set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000b';
+do $$
+declare v jsonb;
+begin
+  v := public.toggle_professor_like('10000000-0000-0000-0000-000000000002');
+  if (v ->> 'liked')::boolean is not true or (v ->> 'like_count')::int <> 1 then
+    raise exception 'expected liked=true count=1, got %', v;
+  end if;
+  v := public.toggle_professor_like('10000000-0000-0000-0000-000000000002');
+  if (v ->> 'liked')::boolean is not false or (v ->> 'like_count')::int <> 0 then
+    raise exception 'expected liked=false count=0 (cancel), got %', v;
+  end if;
+  v := public.toggle_professor_like('10000000-0000-0000-0000-000000000002');
+  if (v ->> 'liked')::boolean is not true or (v ->> 'like_count')::int <> 1 then
+    raise exception 'expected liked=true count=1 again, got %', v;
+  end if;
+  raise notice 'ok: 1인 1하트 (토글)';
+  -- 교수님 트리가 아니면 하트 없음
+  v := public.toggle_professor_like('10000000-0000-0000-0000-000000000001');
+  if v ->> 'error' <> 'not_found' then raise exception 'expected not_found, got %', v; end if;
+  raise notice 'ok: 일반 트리에는 하트 없음';
+end $$;
+\echo '--- 누른 사람 비공개: professor_likes 직접 조회 불가 · RPC 반환에 user_id 없음'
+do $$ begin perform 1 from public.professor_likes; raise exception 'LEAK';
+exception when insufficient_privilege then raise notice 'ok: likes table hidden'; end $$;
+do $$ begin
+  if exists (select 1 from pg_proc
+             where proname = 'list_professors' and pronamespace = 'public'::regnamespace
+               and pg_get_function_result(oid) like '%user_id%') then
+    raise exception 'LEAK: list_professors returns who liked';
+  end if;
+  raise notice 'ok: list_professors has no liker column';
+end $$;
+select slug, is_open, like_count, liked_by_me from public.list_professors();
+
+\echo '--- 트리 색: 주인은 tree_color 를 바꾸고, is_open 은 못 바꾼다'
+do $$ begin
+  update public.trees set tree_color = 'snow', theme = 'night' where id = '10000000-0000-0000-0000-000000000004';
+  raise notice 'ok: tree_color·theme saved';
+end $$;
+do $$ begin
+  update public.trees set is_open = false where id = '10000000-0000-0000-0000-000000000004';
+  raise exception 'SHOULD NOT CHANGE is_open';
+exception when insufficient_privilege then raise notice 'ok: is_open locked for owner'; end $$;
+-- 남의 트리는 RLS 로 0행 (권한은 있어도 바뀌지 않는다)
+update public.trees set tree_color = 'pink' where id = '10000000-0000-0000-0000-000000000001';
+select slug, tree_color, theme, is_open from public.trees where id = '10000000-0000-0000-0000-000000000004';
+
+\echo '--- 허락 대기 트리는 편지를 받지 않는다'
+reset role; set role service_role;
+do $$
+declare v jsonb;
+begin
+  v := public.submit_letter('10000000-0000-0000-0000-000000000002', 'ball', '친구', '몰래', false, 'ip-p1', 'client-p1');
+  if v ->> 'error' <> 'tree_not_found' then
+    raise exception 'expected tree_not_found for closed tree, got %', v;
+  end if;
+  raise notice 'ok: 닫힌 트리는 tree_not_found';
+  v := public.submit_letter('10000000-0000-0000-0000-000000000003', 'ball', '친구', '열린 트리', false, 'ip-p2', 'client-p2');
+  if (v ->> 'ok')::boolean is not true then
+    raise exception 'expected ok for open tree, got %', v;
+  end if;
+  raise notice 'ok: 열린 트리는 저장';
+end $$;
+
+\echo '--- 일반 사용자는 트리를 열 수 없다 (관리자만)'
+reset role; set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  perform public.admin_set_tree_open('10000000-0000-0000-0000-000000000002', true);
+  raise exception 'SHOULD NOT OPEN';
+exception when raise_exception then raise notice 'ok: non-admin cannot open tree'; end $$;
+
+\echo '--- 관리자는 트리를 열 수 있고, 그 뒤에는 편지가 저장된다'
+reset role; update public.profiles set is_admin = true where id = '00000000-0000-0000-0000-00000000000a';
+set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000a';
+do $$ begin
+  perform public.admin_set_tree_open('10000000-0000-0000-0000-000000000002', true);
+  raise notice 'ok: admin opened tree';
+end $$;
+select slug, kind, department, is_open, like_count from public.admin_list_special_trees();
+reset role; set role service_role;
+do $$
+declare v jsonb;
+begin
+  v := public.submit_letter('10000000-0000-0000-0000-000000000002', 'ball', '친구', '이제 쓸 수 있어요', false, 'ip-p3', 'client-p3');
+  if (v ->> 'ok')::boolean is not true then
+    raise exception 'expected ok after open, got %', v;
+  end if;
+  raise notice 'ok: 열린 뒤에는 저장';
+end $$;
 
 \echo '=== 공개 시각을 과거로 ==='
 reset role; update public.app_config set reveal_at = now() - interval '1 minute';
 set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000a';
 \echo '--- 공개 후: 주인 SELECT (2, 고백 여부 포함)'
-select nickname, content, is_confession from public.letters;
+select nickname, content, is_confession from public.letters
+ where tree_id = '10000000-0000-0000-0000-000000000001' order by created_at;
 \echo '--- 공개 후: 다른 유저 SELECT (0)'
 set request.jwt.sub = '00000000-0000-0000-0000-00000000000b';
-select count(*) from public.letters;
+select count(id) from public.letters;
 \echo '--- 공개 후: anon SELECT (권한 없음)'
 reset role; set role anon;
 do $$ begin perform 1 from public.letters; raise exception 'LEAK';
