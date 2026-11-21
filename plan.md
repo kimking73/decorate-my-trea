@@ -519,8 +519,10 @@
 - [ ] 🛠 **서버 액션·조회 함수 추가** · 선행: 0003
   - `getProfessors`, `toggleProfessorLike`, `adminSetTreeOpen`, `adminUpdateSpecialTree`, `saveTreeStyle`, `getReportedLetters`, `getTreeBySlug`의 닫힌 트리 처리, `saveMyTree` 이름 바꾸기 후 `/me?toast=renamed`, `adminCreateSpecialTree`를 허락 대기로 생성
   - 데모 분기 함께 추가 (데모 교수님 목록)
-- [ ] 🖥 **와이어프레임대로 기존 화면 구조 정리** (홈·로그인·`/create`·`/me`·`/admin` 탭·공통 상태)
+- [ ] 🖥 **와이어프레임대로 기존 화면 구조 정리** (홈·로그인·`/create`·`/me`·`/admin` 탭·공통 상태) — 타임라인 **F6**
   - 디자인(색·폰트)은 F1에서. 이 작업은 구조·문구·상태·데이터 연결만
+  - 2026-11-21 `task/F6-wireframe-screens`: 지금 있는 함수로 되는 부분 완료 — 홈 위쪽 3분기·헤더·교수님 카드, 로그인 오류·인앱 안내·"편지를 쓰러 왔나요?", `/create` 만들기(미리보기·글자 수)/이름 바꾸기, `/me` 링크 복사·공유·빈 상태·알림(`?toast=`), `/admin` 탭 3개·관리자 아님 안내, 404 2종, `loading.tsx`(로그인 필요 화면만), 초대 코드 화면 제거
+  - 남은 일 (서버 함수가 생기면): 이름 바꾸기 후 `/me?toast=renamed`로 이동(`saveMyTree`), `/admin` 교수님 목록의 관심 수·허락 상태·거르기·"트리 열기"·"정보 수정", 만들기 폼의 학과, 신고 목록을 `getReportedLetters()`로. `/professors`·`/me/style` 화면이 생기기 전까지 홈 카드·"색·테마 바꾸기" 링크는 404
 - [ ] 🖥 **`/professors` 화면** · 선행: 서버 액션·조회 함수 추가
 - [ ] 🖥 **`/me/style` 화면** · 선행: 서버 액션·조회 함수 추가, 트리 색·테마 값
 - [ ] 📱 **편지 쓰기 2단계 화면·`TreeScene` `treeColor` prop** (`WriteForm`·`TreeScene`, 클라이언트 담당)

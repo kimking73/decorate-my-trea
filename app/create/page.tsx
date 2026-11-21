@@ -1,20 +1,33 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import TreeForm from "@/components/TreeForm";
-import { getMyTree, getProfile, getUser } from "@/lib/data";
+import { getMyTree, getProfile, getRevealAt, getUser } from "@/lib/data";
+import { getSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
+// 트리가 없으면 새로 만들기, 있으면 이름 바꾸기 (같은 경로, spec.md 5.1)
 export default async function CreatePage() {
   const user = await getUser();
   if (!user) redirect("/login?next=/create");
-  const [tree, profile] = await Promise.all([getMyTree(user.id), getProfile()]);
+  const [tree, profile, revealAt] = await Promise.all([getMyTree(user.id), getProfile(), getRevealAt()]);
+  const { progress, bulbsOn, daysLeft, revealed } = getSeason(Date.now(), revealAt);
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md px-4 py-6" style={{ background: "linear-gradient(#0f2a44,#1c4566)" }}>
-      <Link href="/me" className="text-sm opacity-85">← 내 페이지</Link>
-      <h1 className="font-display mb-4 mt-3 text-2xl">{tree ? "내 이름 바꾸기" : "나만의 트리 만들기"}</h1>
-      <TreeForm initialName={tree?.owner_name ?? profile?.display_name ?? ""} isEdit={!!tree} />
+    <main className="min-h-dvh" style={{ background: "linear-gradient(#0f2a44,#1c4566)" }}>
+      <header className="mx-auto flex h-14 max-w-md items-center px-2">
+        <Link href={tree ? "/me" : "/"} className="flex min-h-11 items-center px-2 text-sm opacity-85">
+          {tree ? "← 내 페이지" : "← 홈으로"}
+        </Link>
+      </header>
+      <div className="mx-auto max-w-md px-4 pb-8 pt-2">
+        <TreeForm
+          mode={tree ? "rename" : "create"}
+          initialName={tree?.owner_name ?? profile?.display_name ?? ""}
+          currentTitle={tree?.title ?? null}
+          season={{ progress, bulbsOn, daysLeft, revealed }}
+        />
+      </div>
     </main>
   );
 }

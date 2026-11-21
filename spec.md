@@ -1,6 +1,6 @@
 # 포스텍 트리 — 제품 스펙
 
-> 마지막 갱신: 2026-11-21 (와이어프레임 반영: 교수님 관심(하트)·허락 흐름, 내 트리 색·테마, 하트·허락 4.6, 내 트리 꾸미기 4.7, 화면별 데이터·액션 2.3, 화면 5.1, DB 5.3, 미정 6장) · 2026-11-17 (애니메이션 성능 규칙·동작 줄이기(C2): 4.2, 2.1 · 데모 전용 주인 화면 미리보기 `?owner=1`: 4.2 · 장식 페이지 넘김(C3): 5.1 · 12/25 0시 동시 접속 대비: 4.5, 6장 · 서버 담당: 2장 · 문서 간 중복 제거·환경변수 표 통합: 1.1, 7장 · QA용 데모 배포·공유 주소 기본값: 1.1 · plan.md 기술 스택 작업 가이드 규칙: 7장 · 작업 관리 규칙 추가: 7장 · 프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3~6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
+> 마지막 갱신: 2026-11-21 (F6 화면 구조 정리: 2.1에 프론트엔드 새 컴포넌트 · 와이어프레임 반영: 교수님 관심(하트)·허락 흐름, 내 트리 색·테마, 하트·허락 4.6, 내 트리 꾸미기 4.7, 화면별 데이터·액션 2.3, 화면 5.1, DB 5.3, 미정 6장) · 2026-11-17 (애니메이션 성능 규칙·동작 줄이기(C2): 4.2, 2.1 · 데모 전용 주인 화면 미리보기 `?owner=1`: 4.2 · 장식 페이지 넘김(C3): 5.1 · 12/25 0시 동시 접속 대비: 4.5, 6장 · 서버 담당: 2장 · 문서 간 중복 제거·환경변수 표 통합: 1.1, 7장 · QA용 데모 배포·공유 주소 기본값: 1.1 · plan.md 기술 스택 작업 가이드 규칙: 7장 · 작업 관리 규칙 추가: 7장 · 프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3~6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
 
 ## 1. 개요
 - **목표**: POSTECH 학생들이 인스타그램에 자기 트리 링크를 올리고, 친구들이 **익명 편지**를 장식으로 달아주는 연말 이벤트. 편지는 **12/25 00:00 KST**에 열린다.
@@ -78,7 +78,7 @@
 | --- | --- | --- |
 | 트리 화면 / 인터랙션 | 클라이언트 | `components/TreeScene.tsx`, `TreeView.tsx`, `WriteForm.tsx`, `LetterModal.tsx`, `Snow.tsx`, `Countdown.tsx`, `ShareButtons.tsx`, `lib/season.ts`, `app/globals.css` (애니메이션 부분), `scripts/perf-measure.mjs`, `docs/qa-c2-device.md` |
 | 카카오톡 공유 (선택) | 클라이언트 | `lib/kakao.ts` |
-| 페이지 / 폼 | 프론트엔드 | `app/**/page.tsx`, `app/**/loading.tsx`, `app/layout.tsx`, `app/not-found.tsx`, `app/opengraph-image.png`, `components/TreeForm.tsx`, `LoginButtons.tsx`, `ClaimForm.tsx`, `AdminCreateForm.tsx`, (새로) `ProfessorList.tsx`, `TreeStyleForm.tsx`, `Toast.tsx`, `package.json` (프론트엔드 의존성) |
+| 페이지 / 폼 | 프론트엔드 | `app/**/page.tsx`, `app/**/loading.tsx`, `app/layout.tsx`, `app/not-found.tsx`, `app/opengraph-image.png`, `components/TreeForm.tsx`, `LoginButtons.tsx`, `ClaimForm.tsx`, `AdminCreateForm.tsx`, (새로) `ProfessorList.tsx`, `TreeStyleForm.tsx`, `Toast.tsx`, `ShareLinkButtons.tsx`, `InAppNotice.tsx`, `ConfirmSubmitButton.tsx`, `LoadingSkeleton.tsx`, `package.json` (프론트엔드 의존성) |
 | 데이터 / 서버 | 서버 | `app/actions.ts`, `app/api/**`, `app/auth/**`, `middleware.ts`, `lib/data.ts`, `lib/supabase/**`, `lib/moderation.ts`, `supabase/migrations/**`, `scripts/test-rls.sql`, Vercel·Supabase 설정 |
 | CI / 관측 | 서버 | `.github/workflows/**`, (선택) `sentry.*.config.ts`, `instrumentation.ts` |
 | 작업 관리 | 공통 | `plan.md`, `scripts/sync-plan.mjs` (7장) |
@@ -227,7 +227,7 @@
 | `/t/[slug]/write` | 1/2 장식 고르기 → 2/2 편지 쓰기 → 트리로 복귀 (3장) | - |
 | `/admin` | 탭 3개: 교수님 트리 만들기 / 교수님 목록(허락 상태) / 신고 N. 관리자가 아니면 "관리자만 볼 수 있어요" | 관리자 |
 
-**공통 상태**: 없는 트리 "트리를 찾을 수 없어요"(+ 홈으로) · 그 밖의 404 "페이지를 찾을 수 없어요" · 권한 없음 · 불러오는 중(`loading.tsx`) · 화면 아래 짧은 알림(예: "링크를 복사했어요", "트리 이름을 바꿨어요") · 폼 제출 중에는 버튼을 막고 "…하는 중" 표시 · 서버 액션의 `{ error }` 문구는 폼 위 알림에 그대로 보여 준다.
+**공통 상태**: 없는 트리 "트리를 찾을 수 없어요"(+ 홈으로) · 그 밖의 404 "페이지를 찾을 수 없어요" · 권한 없음 · 불러오는 중(`loading.tsx` — 로그인이 필요한 `/me`·`/create`·`/admin`에만. 링크로 공유되는 `/`·`/t/**`에 두면 응답이 스트리밍되어 카카오톡 미리보기 봇이 og 태그를 못 읽고 없는 트리가 404 대신 200이 된다) · 화면 아래 짧은 알림(예: "링크를 복사했어요", "트리 이름을 바꿨어요") · 폼 제출 중에는 버튼을 막고 "…하는 중" 표시 · 서버 액션의 `{ error }` 문구는 폼 위 알림에 그대로 보여 준다.
 
 **트리 넘김 (C3, `/t/[slug]`)** — 장식은 한 트리에 18개. 넘으면 "다음 트리"로 넘겨 본다.
 - 순서: 오래된 편지부터. 첫 화면은 1번째 트리, 편지를 막 달고 돌아오면(`?added=1`) 새 장식이 있는 마지막 트리 + pop-in.

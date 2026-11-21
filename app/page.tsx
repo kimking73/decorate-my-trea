@@ -1,8 +1,10 @@
 import Link from "next/link";
 import Countdown from "@/components/Countdown";
 import Snow from "@/components/Snow";
+import ShareLinkButtons from "@/components/ShareLinkButtons";
 import TreeScene from "@/components/TreeScene";
-import { demoMode, getMyTree, getRevealAt, getSpecialTrees, getStats, getUser } from "@/lib/data";
+import { demoMode, getMyTree, getOrnaments, getRevealAt, getStats, getUser } from "@/lib/data";
+import { SITE_URL } from "@/lib/constants";
 import { TOTAL_BULBS, getSeason, parseForcedDday } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
@@ -13,17 +15,20 @@ const PREVIEW = ["ball-red", "jigok", "sock", "star", "coffee", "aplus", "gift",
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ dday?: string }> }) {
   const { dday } = await searchParams;
-  const [user, stats, special, revealAt] = await Promise.all([
-    getUser(), getStats(), getSpecialTrees(), getRevealAt(),
-  ]);
+  const [user, stats, revealAt] = await Promise.all([getUser(), getStats(), getRevealAt()]);
   const season = getSeason(Date.now(), revealAt, parseForcedDday(dday, demoMode || process.env.NODE_ENV !== "production"));
   const myTree = user ? await getMyTree(user.id) : null;
-  const cta = myTree ? { href: `/t/${myTree.slug}`, label: "🎄 내 트리 보러가기" } : user ? { href: "/create", label: "🎄 내 트리 만들기" } : { href: "/login?next=/create", label: "🎄 내 트리 만들기" };
+  // 받은 편지 수: 장식 개수로 센다 (spec.md 2.3). 많아지면 서버가 getLetterCount로 바꾼다
+  const letterCount = myTree ? (await getOrnaments(myTree.id)).length : 0;
 
   return (
     <main className="relative min-h-dvh overflow-x-hidden" style={{ background: "linear-gradient(#0b2036, #1c4566 55%, #2b5d7d)" }}>
       <Snow density={Math.round(30 + 70 * season.progress)} />
-      <div className="relative z-10 mx-auto flex max-w-md flex-col items-center px-4 pb-12 pt-8 text-center">
+      <header className="relative z-10 mx-auto flex h-14 max-w-md items-center justify-between px-4">
+        <Link href="/" className="font-display text-lg">🎄 포스텍 트리</Link>
+        <Link href={user ? "/me" : "/login"} className="flex min-h-11 items-center px-2 text-sm">{user ? "내 페이지" : "로그인"}</Link>
+      </header>
+      <div className="relative z-10 mx-auto flex max-w-md flex-col items-center px-4 pb-12 pt-4 text-center">
         <p className="text-sm tracking-widest opacity-80">POSTECH CHRISTMAS 2026</p>
         <h1 className="font-display mt-1 text-[40px] leading-tight">포스텍 트리 🎄</h1>
         <p className="mt-2 text-[15px] opacity-90">
@@ -42,8 +47,26 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
             : "💡 12월 1일부터 트리에 불이 하나씩 켜지고 눈이 쌓여요"}
         </p>
 
-        <Link href={cta.href} className="btn btn-primary mt-4 w-full text-lg">{cta.label}</Link>
-        {demoMode && <Link href="/t/demo" className="btn btn-light mt-3 w-full">👀 데모 트리 구경하기</Link>}
+        {/* 위쪽 버튼: 로그인 전 / 로그인·트리 없음 / 로그인·트리 있음 (spec.md 3장) */}
+        {myTree ? (
+          <section className="mt-4 flex w-full flex-col gap-3">
+            <div className="card flex items-center justify-between gap-3 px-4 py-3.5 text-left">
+              <div className="min-w-0">
+                <p className="font-display truncate text-lg">{myTree.title}</p>
+                <p className="text-sm text-slate-500">받은 편지 {letterCount.toLocaleString()}통</p>
+              </div>
+              <span className="shrink-0 text-sm text-slate-500">{season.revealed ? "편지가 열렸어요" : `D-${season.daysLeft}`}</span>
+            </div>
+            <Link href={`/t/${myTree.slug}`} className="btn btn-primary w-full text-lg">🎄 내 트리 보러 가기</Link>
+            <ShareLinkButtons url={`${SITE_URL}/t/${myTree.slug}`} title={myTree.title} variant="single" />
+          </section>
+        ) : (
+          <section className="mt-4 flex w-full flex-col gap-3">
+            <Link href={user ? "/create" : "/login?next=/create"} className="btn btn-primary w-full text-lg">🎄 내 트리 만들기</Link>
+            {/* 실서버에서 무엇을 보여 줄지는 미정 (spec.md 6장) → 지금은 데모 모드에서만 */}
+            {demoMode && <Link href="/t/demo" className="btn btn-light w-full">👀 데모 트리 구경하기</Link>}
+          </section>
+        )}
 
         {/* 고백 카운터 */}
         <section className="mt-8 w-full rounded-3xl bg-pink-500/25 p-5 backdrop-blur">
@@ -65,23 +88,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
           ))}
         </section>
 
-        {/* 특별 트리 */}
-        {special.length > 0 && (
-          <section className="mt-8 w-full text-left">
-            <h2 className="font-display mb-2 text-xl">👨‍🏫 교수님께 마음 전하기</h2>
-            <div className="flex flex-col gap-2">
-              {special.map((t) => (
-                <Link key={t.id} href={`/t/${t.slug}`} className="flex items-center gap-3 rounded-2xl bg-[#2f4d3c] p-4 shadow">
-                  <span className="text-3xl">{t.kind === "professor" ? "🖍️" : "✨"}</span>
-                  <span>
-                    <span className="font-display block text-lg">{t.title}</span>
-                    {t.description && <span className="block text-xs opacity-80">{t.description}</span>}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* 교수님께 마음 전하기 → /professors (spec.md 3장) */}
+        <Link href="/professors" className="mt-6 flex w-full items-center gap-3.5 rounded-2xl bg-[#2f4d3c] p-4 text-left shadow">
+          <span className="text-3xl" aria-hidden>🖍️</span>
+          <span className="min-w-0 flex-1">
+            <span className="font-display block text-lg">교수님께 마음 전하기</span>
+            <span className="block text-xs leading-5 opacity-85">교수님을 찾아 익명 편지를 남겨요. 아직 열리지 않았다면 관심을 보내 주세요.</span>
+          </span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0"><path d="M9 6l6 6-6 6" /></svg>
+        </Link>
 
         <section className="mt-8 w-full rounded-3xl bg-white/10 p-5 text-left text-sm leading-6">
           <h2 className="font-display mb-2 text-lg">🎁 이렇게 즐겨요</h2>
@@ -94,7 +109,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
           <p className="mt-3 text-xs opacity-70">psst... 트리 꼭대기 별을 마구 눌러보세요. 트리 옆 포닉스도 한번 눌러보고, 편지에 특별한 단어를 쓰면 무슨 일이 생길지도?</p>
         </section>
 
-        <footer className="mt-8 text-xs opacity-60">Made with ❤️ by POSTECH students · {user ? <Link href="/me" className="underline">내 페이지</Link> : <Link href="/login" className="underline">로그인</Link>}</footer>
+        <footer className="mt-8 text-xs opacity-60">Made by POSTECH students · {user ? <Link href="/me" className="underline">내 페이지</Link> : <Link href="/login" className="underline">로그인</Link>}</footer>
       </div>
     </main>
   );

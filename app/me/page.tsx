@@ -1,57 +1,88 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import ClaimForm from "@/components/ClaimForm";
-import Countdown from "@/components/Countdown";
-import { getMyTree, getOrnaments, getOwnedSpecialTrees, getProfile, getRevealAt, getUser } from "@/lib/data";
+import ShareLinkButtons from "@/components/ShareLinkButtons";
+import Toast from "@/components/Toast";
+import TreeScene from "@/components/TreeScene";
+import { getMyTree, getOrnaments, getProfile, getRevealAt, getUser } from "@/lib/data";
+import { SITE_URL } from "@/lib/constants";
+import { getSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
-export default async function MePage() {
+// 서버 액션이 성공 후 /me?toast=… 로 보내면 화면 아래 알림을 띄운다 (spec.md 2.3)
+const TOASTS: Record<string, string> = {
+  renamed: "트리 이름을 바꿨어요",
+  styled: "트리 색·테마를 바꿨어요",
+};
+
+export default async function MePage({ searchParams }: { searchParams: Promise<{ toast?: string }> }) {
   const user = await getUser();
   if (!user) redirect("/login?next=/me");
-  const [tree, special, profile, revealAt] = await Promise.all([
-    getMyTree(user.id), getOwnedSpecialTrees(user.id), getProfile(), getRevealAt(),
-  ]);
-  if (!tree && special.length === 0) redirect("/create");
-  const count = tree ? (await getOrnaments(tree.id)).length : 0;
+  const { toast } = await searchParams;
+  const [tree, profile, revealAt] = await Promise.all([getMyTree(user.id), getProfile(), getRevealAt()]);
+  const ornaments = tree ? await getOrnaments(tree.id) : [];
+  const season = getSeason(Date.now(), revealAt);
+  const shareUrl = tree ? `${SITE_URL}/t/${tree.slug}` : "";
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md px-4 py-6" style={{ background: "linear-gradient(#0f2a44,#1c4566)" }}>
-      <Link href="/" className="text-sm opacity-85">← 홈</Link>
-      <h1 className="font-display mt-3 text-2xl">{profile?.display_name ?? "산타"}님, 안녕하세요 🎅</h1>
-      <div className="mt-4"><Countdown target={revealAt.toISOString()} /></div>
+    <main className="flex min-h-dvh flex-col" style={{ background: "linear-gradient(#0f2a44,#1c4566)" }}>
+      <header className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-4">
+        <Link href="/" className="font-display flex min-h-11 items-center text-lg">🎄 포스텍 트리</Link>
+        <span className="text-[15px] font-bold">내 페이지</span>
+      </header>
 
-      {tree && (
-        <section className="card mt-5 p-5">
-          <p className="text-sm text-slate-500">내 트리</p>
-          <p className="font-display text-xl">{tree.title}</p>
-          <p className="mt-1">💌 받은 편지 <b>{count}</b>개</p>
-          <div className="mt-4 flex gap-2">
-            <Link href={`/t/${tree.slug}`} className="btn btn-primary flex-1">트리 보기</Link>
-            <Link href="/create" className="btn btn-light flex-1">설정</Link>
-          </div>
-        </section>
-      )}
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-4 pb-6 pt-4">
+        {tree ? (
+          <>
+            <section className="card flex flex-col gap-3.5 p-4">
+              <div className="overflow-hidden rounded-xl" style={{ background: "linear-gradient(#0b2036, #1c4566)" }}>
+                <div className="pointer-events-none mx-auto max-w-[220px]" aria-hidden>
+                  <TreeScene theme={tree.theme} ornaments={ornaments.slice(0, 18)} season={season} lockedIcons />
+                </div>
+              </div>
+              <div>
+                <h1 className="font-display text-2xl">{tree.title}</h1>
+                <p className="text-sm text-slate-600">
+                  받은 편지 <b>{ornaments.length.toLocaleString()}통</b> ·{" "}
+                  {season.revealed ? "편지가 열렸어요!" : `12월 25일 0시에 열려요 (D-${season.daysLeft})`}
+                </p>
+              </div>
+              <Link href={`/t/${tree.slug}`} className="btn btn-primary w-full text-lg">🎄 내 트리 보러 가기</Link>
+              <ShareLinkButtons url={shareUrl} title={tree.title} variant="pair" />
+              <p className="select-all break-all rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-600">{shareUrl}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Link href="/me/style" className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">색·테마 바꾸기</Link>
+                <Link href="/create" className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">이름 바꾸기</Link>
+              </div>
+            </section>
 
-      {special.length > 0 && (
-        <section className="card mt-4 p-5">
-          <p className="text-sm text-slate-500">내가 관리하는 특별 트리</p>
-          <ul className="mt-2 space-y-2">
-            {special.map((t) => <li key={t.id}><Link className="underline" href={`/t/${t.slug}`}>👨‍🏫 {t.title}</Link></li>)}
-          </ul>
-        </section>
-      )}
+            <p className="rounded-2xl bg-white/10 px-4 py-3.5 text-sm leading-6">
+              스토리용 이미지는 <b>내 트리 화면</b>에서 저장할 수 있어요.
+            </p>
+          </>
+        ) : (
+          <section className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-white/50 px-4 py-7 text-center">
+            <p className="text-5xl" aria-hidden>🌲</p>
+            <h1 className="font-display text-2xl">아직 트리가 없어요</h1>
+            <p className="text-sm opacity-85">이름만 적으면 바로 만들 수 있어요.</p>
+            <Link href="/create" className="btn btn-primary w-full text-lg">🎄 내 트리 만들기</Link>
+          </section>
+        )}
 
-      <section className="card mt-4 p-5">
-        <p className="mb-2 text-sm font-bold">교수님이신가요? 🎓</p>
-        <p className="mb-3 text-xs text-slate-500">운영진에게 받은 초대 코드를 입력하면 교수님 트리의 주인이 되어 크리스마스에 편지를 읽을 수 있어요.</p>
-        <ClaimForm />
-      </section>
-
-      <div className="mt-6 flex justify-between text-sm">
-        {profile?.is_admin ? <Link href="/admin" className="underline">관리자</Link> : <span />}
-        <form action="/auth/signout" method="post"><button className="underline opacity-80">로그아웃</button></form>
+        {profile?.is_admin && (
+          <Link href="/admin" className="flex min-h-13 items-center justify-between rounded-xl border border-dashed border-white/50 px-4 text-[15px]">
+            <span>관리자 페이지</span><span aria-hidden>→</span>
+          </Link>
+        )}
       </div>
+
+      <footer className="flex justify-center border-t border-white/15 p-4">
+        <form action="/auth/signout" method="post">
+          <button className="min-h-11 px-4 text-sm underline opacity-80">로그아웃</button>
+        </form>
+      </footer>
+
+      <Toast message={(toast && TOASTS[toast]) || null} clearQuery />
     </main>
   );
 }
