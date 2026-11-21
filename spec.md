@@ -207,7 +207,7 @@
 ### 4.7 내 트리 꾸미기 (`/me/style`)
 - 트리 주인만 바꾼다 (일반 트리, RLS의 기존 주인 update 권한).
 - **트리 색**(`trees.tree_color`)과 **배경 테마**(`trees.theme`)를 따로 고른다. 와이어프레임의 임시 값: 트리 색 초록·포스텍 레드·눈꽃·금색·분홍·남색, 배경 밤하늘·눈 오는 날·벽난로·포스텍 캠퍼스. 실제 id·색 값은 디자인 확정(D2) 후 `lib/constants.ts`에 넣는다.
-- 칠판 테마(`chalkboard`)는 교수님 트리 전용이라 일반 트리 선택지에 없고, 서버도 일반 트리에 저장하지 않는다.
+- 칠판 테마(`chalkboard`)는 교수님 트리 전용이라 일반 트리 선택지에 없다. **DB에서 강제**한다: 주인은 `grant update`로 `trees.theme`를 직접 바꿀 수 있으므로, 서버 액션 검사만으로는 막을 수 없다. `0003`에 check 제약 `kind <> 'user' or theme <> 'chalkboard'`를 넣는다 (5.3).
 - 저장하면 친구가 링크로 들어왔을 때 그 색과 테마로 보인다. 장식은 그대로다.
 
 ## 5. 인터페이스
@@ -218,7 +218,7 @@
 | URL | 설명 | 로그인 |
 | --- | --- | --- |
 | `/` | 홈: 카운트다운(일·시간·분·초), 트리 미리보기(데모 장식), 위쪽 버튼 분기(3장), 고백 카운터, 통계(트리/편지/오늘 달린 편지), "교수님께 마음 전하기" 카드(→ `/professors`), 이용 방법, 이스터에그 힌트 | - |
-| `/login` | 카카오/구글 로그인, `?next=` 유지, `?error=1`이면 오류 알림, 인앱 브라우저 안내 | - |
+| `/login` | 카카오/구글 로그인, `?next=` 유지(같은 사이트 경로만, 아래), `?error=1`이면 오류 알림, 인앱 브라우저 안내 | - |
 | `/create` | 트리가 없으면 새로 만들기, 있으면 이름 바꾸기 (같은 경로). 이름 최대 20자, 글자 수 표시, 트리 미리보기 | 필요 |
 | `/me` | 내 트리(썸네일·이름·받은 편지 수·D-N), 트리 보러 가기, 링크 복사·공유, 색·테마 바꾸기, 이름 바꾸기, 관리자 링크(관리자만), 로그아웃. 트리가 없으면 "아직 트리가 없어요" + 내 트리 만들기 | 필요 |
 | `/me/style` | 내 트리 꾸미기: 트리 색·배경 테마 선택, 미리보기, 저장 (4.7) | 필요 (주인) |
@@ -239,6 +239,8 @@
 - 장식이 줄어(신고 등) 트리 수가 줄면 마지막 트리로 맞춘다.
 - 확인용: 데모 모드에서만 `?fill=60`으로 데모 장식을 복제해 채운다 (실서버에서는 무시). 스와이프 기준 거리·애니메이션 시간 같은 값은 `components/TreeView.tsx`·`app/globals.css`에 있다.
 
+- **`next` 검사** (`/login`·`/auth/callback` 공통): `next`는 `/`로 시작하고 `//`·`/\`로 시작하지 않는 상대 경로만 받는다. 그 밖의 값(`https://…` 등)이나 값이 없으면 `/`로 보낸다. 검사 없이 넘기면 로그인 후 다른 사이트로 보내는 open redirect가 된다.
+
 ### 5.2 API — `POST /api/letters`
 요청 (JSON)
 ```json
@@ -256,7 +258,7 @@
 - `app_config(reveal_at)` — 공개 시각 (기본 `2026-12-25 00:00+09`)
 - `profiles(id, display_name, is_admin)`
 - `trees(id, owner_id, slug, title, owner_name, theme, department, kind[user|professor|special], description, claim_code)` — 일반 유저 1인 1트리
-  - **추가 예정** (마이그레이션 `0003`): `is_open boolean not null default true` (교수님 트리는 `false`로 생성, 4.6) · `tree_color text` (null이면 테마 기본색, 4.7). 둘 다 select 권한·`TREE_COLUMNS`에 넣고, 주인 `grant update`에는 `tree_color`만 넣는다
+  - **추가 예정** (마이그레이션 `0003`): `is_open boolean not null default true` (교수님 트리는 `false`로 생성, 4.6) · `tree_color text` (null이면 테마 기본색, 4.7). 둘 다 select 권한·`TREE_COLUMNS`에 넣는다. 주인 `grant update`에는 `tree_color`를 **추가**한다 (기존 `theme`·이름 권한은 유지, `is_open`은 넣지 않음). 이미 있는 교수님 트리는 허락을 받지 않았으므로 `0003`에서 `update trees set is_open = false where kind = 'professor'`로 닫는다 (이미 달린 편지는 지우지 않고, 트리를 열면 다시 보인다) · check 제약 `trees_chalkboard_professor_only`: `kind <> 'user' or theme <> 'chalkboard'` (4.7). 적용 전에 일반 트리 중 `chalkboard`가 있으면 `classic`으로 바꾼다
 - `professor_likes(tree_id, user_id, created_at)` — **추가 예정**. 기본키 `(tree_id, user_id)`, `kind = 'professor'` 트리만. 테이블 직접 조회·변경은 막고 RPC로만 접근
 - `letters(id, tree_id, ornament_type, nickname, content, is_confession, ip_hash, client_hash, reported, hidden, created_at)` — `client_hash` **추가** (인덱스 `(client_hash, created_at)`)
 - RPC: `get_ornaments(tree_id)`(본문·고백 여부 제외), `get_stats()`, `report_letter`, `claim_tree`, `admin_*`

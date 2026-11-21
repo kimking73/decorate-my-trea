@@ -1,6 +1,6 @@
 # 포스텍 트리 — 구현 계획
 
-> 마지막 갱신: 2026-11-21 (F3 완료: next/font 자체 호스팅·framer-motion 제거 · 타임라인 링크를 실제 주소로 교체·동기화, 번호가 붙은 와이어프레임 작업을 미등록 목록에서 정리 · 와이어프레임 반영: 확정된 변경·타임라인에 아직 없는 작업) · 2026-11-17 (C2 자동 성능 측정·개선, 실기기 체크리스트: docs/qa-c2-device.md · 타임라인에 없는 작업 추가: 데모 주인 화면 미리보기 · 작업 가이드 중복 제거: 제약·명령어는 CLAUDE.md, 환경변수는 spec.md 1.1로)
+> 마지막 갱신: 2026-11-21 (F3 완료: next/font 자체 호스팅·framer-motion 제거 · 타임라인 링크를 실제 주소로 교체·동기화, 번호가 붙은 와이어프레임 작업을 미등록 목록에서 정리 · 와이어프레임 반영: 확정된 변경·타임라인에 아직 없는 작업) · 2026-11-20 (C2 실기기 확인 결과, 저사양 폰 확인은 베타로: docs/qa-c2-device.md) · 2026-11-17 (C2 자동 성능 측정·개선, 실기기 체크리스트: docs/qa-c2-device.md · 타임라인에 없는 작업 추가: 데모 주인 화면 미리보기 · 작업 가이드 중복 제거: 제약·명령어는 CLAUDE.md, 환경변수는 spec.md 1.1로)
 > 🖼 화면 와이어프레임: [포스텍 트리 와이어프레임 (프론트엔드 화면)](https://claude.ai/artifact/48YKQPtn78agRoLiFXwSE5) — 화면별 데이터·액션은 spec.md 2.3
 > 📅 **기준은 [타임라인 (간트 차트)](https://claude.ai/artifact/LVz71ybViGJ7xw6Ga1mD1Y)** 입니다. 사람은 타임라인을 보고 일하고, 작업 추가·일정·완료 체크도 타임라인에서 합니다.
 > 이 문서의 작업 목록은 타임라인의 사본이라 **손으로 고치지 않습니다.** 타임라인을 바꾼 뒤 `node scripts/sync-plan.mjs <타임라인 HTML>`로 다시 만듭니다. 둘이 다르면 타임라인이 맞습니다.
@@ -116,7 +116,7 @@
 ### 인증
 - 공급자: 카카오·구글 OAuth (`signInWithOAuth`, `redirectTo` = `/auth/callback?next=…`). 코드에는 이메일 OTP 로그인도 있음 (`signInWithOtp`).
 - 세션은 쿠키. `middleware.ts`가 갱신하고, 서버 컴포넌트에서는 `createClient()`의 `setAll` 실패를 무시합니다 (정상).
-- 로그인 필요 페이지는 서버에서 `getUser()`로 확인 후 `redirect("/login?next=…")`.
+- 로그인 필요 페이지는 서버에서 `getUser()`로 확인 후 `redirect("/login?next=…")`. `next`는 같은 사이트 상대 경로만 허용하고 아니면 `/` (spec.md 5.1)
 - 관리자 = `profiles.is_admin = true` (대시보드에서 직접 지정). 화면 분기는 `getProfile()`, 실제 권한은 RLS·RPC.
 - OAuth 앱 등록과 Supabase 리다이렉트 URL 설정은 사람이 합니다 (**S2**).
 
@@ -441,7 +441,7 @@
     - navigator.share({ files }) 지원 여부 (iOS·Android)
     - 키보드가 입력창을 가리는지
   - 산출물: 이슈 목록 (client 라벨)
-- [ ] **C2** 실기기·성능 QA · 11/16(월)–11/19(목) · 선행: S16
+- [x] **C2** 실기기·성능 QA · 11/16(월)–11/19(목) · 선행: S16
   - 할 일
     - iOS Safari
     - Android Chrome
@@ -566,7 +566,12 @@
   - 고친 파일: `app/t/[slug]/page.tsx`(프론트엔드 소유 — 와장창프론트엔드 리뷰 필요), `components/TreeView.tsx`, `lib/data.ts`(서버 소유 — 민준 리뷰 필요)
   - 공개 후(`?owner=1&dday=0`)에는 장식을 누르면 가짜 데모 편지가 열린다 (세 번째 장식이 고백 편지). 데모 `getLetters()`를 고쳤으므로 `lib/data.ts`(서버 소유 — 민준 리뷰 필요)도 포함. `?fill=`로 복제된 장식은 편지가 없어 열리지 않는다.
 
-- [ ] **C2 실기기 확인 (사람 몫 남음)** — 📱 클라이언트. C2의 자동 측정·개선은 끝났고 실기기 확인이 남았습니다. 체크리스트·결과 기록 양식·이슈 올리는 법은 [`docs/qa-c2-device.md`](./docs/qa-c2-device.md), 규칙은 `spec.md` 4.2 "애니메이션 성능 규칙".
-  - 한 일 (헤드리스 Chromium, 375px, CPU 4~6배 스로틀): 눈 30fps·탭 가려지면 정지, 전구를 SVG blur 필터에서 HTML `box-shadow`로, 무지개·별 빛을 opacity 전환으로, 동작 줄이기 대응. 메인 스레드 일 약 25~45% 감소(12/25 화면은 래스터 227→0ms/초). 표는 문서 1장.
-  - 남은 일: iOS Safari / Android Chrome / 저사양 폰에서 문서 2장 A~F 확인 → 문제는 `client` 라벨 이슈(라벨을 먼저 만들어야 함) → 다 끝나면 타임라인에서 C2 완료 체크. 위 "트리 넘김(C3) 실기기 QA" 중 실기기 항목은 문서 2장 B·F에 넣었습니다 (인앱 브라우저 항목은 C1).
-  - 고친 파일: `components/Snow.tsx`, `components/TreeScene.tsx`, `app/globals.css`, 새 파일 `scripts/perf-measure.mjs`, `docs/qa-c2-device.md`
+- [ ] **저사양 폰 애니메이션 확인 (C2에서 넘김)** — 📱 클라이언트 · 👥 베타. T3(베타 테스트)의 할 일에 추가해 주세요. C2는 iOS Safari·Android Chrome에서만 확인했고 저사양 폰은 구하지 못했습니다.
+  - 할 일: 베타 테스터 중 3년 이상 된 보급형 안드로이드나 아이폰 8·SE급을 가진 사람에게 `docs/qa-c2-device.md` 2장 A(끊김)·B 마지막 줄(넘길 때 끊김)·E(5분 켜 두고 발열)를 부탁하고, 결과를 같은 문서 "결과" 표에 적는다.
+  - 문제가 있으면 `client` 라벨 이슈. 먼저 볼 곳: 눈 `components/Snow.tsx`(`FPS`), 전구·별 `components/TreeScene.tsx`·`app/globals.css`.
+
+- [ ] **타임라인 S20 설명 고치기 (PR #1 리뷰 반영분)** — 👥 타임라인 편집 권한이 있는 사람. 와이어프레임 작업은 번호(S20·S21·F6·F7·F8·C13·D11·T9)를 받아 위 목록으로 옮겼지만, 타임라인의 S20 할 일은 #1 리뷰 전 문구라 아래처럼 고쳐 주세요. 기준은 `spec.md` 4.7·5.3.
+  - "주인 update는 tree_color만" → "주인 update 권한에 `tree_color` 추가 — 기존 `theme` 유지, `is_open`은 제외" (그대로 구현하면 `/me/style` 테마 저장이 실패)
+  - 추가: 기존 교수님 트리 `is_open = false`로 닫기, 칠판 테마 check 제약 `trees_chalkboard_professor_only`(일반 트리 금지)
+  - `test-rls.sql`에 추가: 일반 트리 주인이 `theme = 'chalkboard'`로 직접 update 실패, 주인이 `theme`·`tree_color` 바꾸기 성공
+  - 고친 뒤 `sync-plan.mjs`로 다시 만들고 이 항목을 지운다
