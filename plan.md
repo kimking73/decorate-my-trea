@@ -118,7 +118,7 @@
 ### 인증
 - 공급자: 카카오·구글 OAuth (`signInWithOAuth`, `redirectTo` = `/auth/callback?next=…`). 코드에는 이메일 OTP 로그인도 있음 (`signInWithOtp`).
 - 세션은 쿠키. `middleware.ts`가 갱신하고, 서버 컴포넌트에서는 `createClient()`의 `setAll` 실패를 무시합니다 (정상).
-- 로그인 필요 페이지는 서버에서 `getUser()`로 확인 후 `redirect("/login?next=…")`.
+- 로그인 필요 페이지는 서버에서 `getUser()`로 확인 후 `redirect("/login?next=…")`. `next`는 같은 사이트 상대 경로만 허용하고 아니면 `/` (spec.md 5.1)
 - 관리자 = `profiles.is_admin = true` (대시보드에서 직접 지정). 화면 분기는 `getProfile()`, 실제 권한은 RLS·RPC.
 - OAuth 앱 등록과 Supabase 리다이렉트 URL 설정은 사람이 합니다 (**S2**).
 
@@ -512,9 +512,9 @@
 
 와이어프레임 반영 (2026-11-21, spec.md 2.3·3장·4.6·4.7·5장)
 - [ ] 🛠 **0003 마이그레이션: 교수님 허락·하트·트리 색** · 선행: S11
-  - `trees.is_open`·`tree_color` (select 권한·`TREE_COLUMNS`, 주인 update는 `tree_color`만), `professor_likes`
+  - `trees.is_open`·`tree_color` (select 권한·`TREE_COLUMNS`, 주인 update 권한에 `tree_color` 추가 — 기존 `theme` 유지, `is_open`은 제외), 기존 교수님 트리 `is_open = false`로 닫기, 칠판 테마 check 제약(일반 트리 금지), `professor_likes`
   - `list_professors()`, `toggle_professor_like()`, `admin_set_tree_open()`, `admin_list_special_trees` 반환 확장, `submit_letter()`가 닫힌 트리 거부
-  - `scripts/test-rls.sql`: 비로그인 하트 실패, 1인 1하트, 누른 사람 비공개, 닫힌 트리 편지 실패, 일반 사용자가 `is_open` 못 바꿈
+  - `scripts/test-rls.sql`: 비로그인 하트 실패, 1인 1하트, 누른 사람 비공개, 닫힌 트리 편지 실패, 일반 사용자가 `is_open` 못 바꿈, 일반 트리 주인이 `theme = 'chalkboard'`로 직접 update 실패, 주인이 `theme`·`tree_color` 바꾸기 성공
   - 완료 기준: 빈 Postgres에서 RLS 테스트 통과
 - [ ] 🛠 **서버 액션·조회 함수 추가** · 선행: 0003
   - `getProfessors`, `toggleProfessorLike`, `adminSetTreeOpen`, `adminUpdateSpecialTree`, `saveTreeStyle`, `getReportedLetters`, `getTreeBySlug`의 닫힌 트리 처리, `saveMyTree` 이름 바꾸기 후 `/me?toast=renamed`, `adminCreateSpecialTree`를 허락 대기로 생성
