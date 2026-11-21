@@ -9,6 +9,9 @@ import { getSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
+// F8에서 app/me/style/page.tsx를 만들면 true로 바꾼다 (그 전에는 404라 버튼을 숨긴다)
+const STYLE_PAGE_READY = false;
+
 // 서버 액션이 성공 후 /me?toast=… 로 보내면 화면 아래 알림을 띄운다 (spec.md 2.3)
 const TOASTS: Record<string, string> = {
   renamed: "트리 이름을 바꿨어요",
@@ -50,8 +53,10 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
               <Link href={`/t/${tree.slug}`} className="btn btn-primary w-full text-lg">🎄 내 트리 보러 가기</Link>
               <ShareLinkButtons url={shareUrl} title={tree.title} variant="pair" />
               <p className="select-all break-all rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-600">{shareUrl}</p>
-              <div className="grid grid-cols-2 gap-2">
-                <Link href="/me/style" className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">색·테마 바꾸기</Link>
+              <div className={`grid gap-2 ${STYLE_PAGE_READY ? "grid-cols-2" : "grid-cols-1"}`}>
+                {STYLE_PAGE_READY && (
+                  <Link href="/me/style" className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">색·테마 바꾸기</Link>
+                )}
                 <Link href="/create" className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">이름 바꾸기</Link>
               </div>
             </section>
