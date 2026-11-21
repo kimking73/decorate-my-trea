@@ -23,6 +23,8 @@ export default function Countdown({ target, compact = false }: { target: string;
   }, [t]);
 
   if (!v) return <div className={compact ? "h-6" : "h-16"} />;
+  // 트리 화면(compact)은 실제로 열린 화면을 받을 때까지 "곧 열려요" (spec.md 4.5). 열리면 TreeView가 "편지 오픈!"으로 바꾼다
+  if (v.done && compact) return <span className="font-display">🎁 곧 열려요</span>;
   if (v.done) return <p className="font-display text-xl">🎅 메리 크리스마스! 편지가 열렸어요</p>;
 
   if (compact) return <span className="font-display">D-{v.d + (v.h || v.m || v.s ? 1 : 0)}</span>;

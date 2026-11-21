@@ -200,7 +200,10 @@ export async function getOwnedSpecialTrees(userId: string): Promise<Tree[]> {
 }
 
 export async function getOrnaments(treeId: string): Promise<OrnamentRow[]> {
-  if (!isConfigured) return demoOrnaments(treeId);
+  if (!isConfigured) {
+    demoRevealFailure();
+    return demoOrnaments(treeId);
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_ornaments", { p_tree_id: treeId });
   if (error) throw error; // 장식이 0개인 트리와 조회 실패를 구분한다 (spec.md 2.3)
@@ -221,6 +224,16 @@ export async function getStats(): Promise<Stats> {
       today_count: Number(row.today_count ?? 0),
     };
   }).catch(() => ({ tree_count: 0, letter_count: 0, confession_count: 0, today_count: 0 }));
+}
+
+// 데모 모드 전용 (C12, spec.md 1.1·4.5): DEMO_REVEAL_FAILURES=N이면 공개 시각 이후 트리 페이지 요청
+// getOrnaments() 호출(트리 페이지 등) 처음 N번(서버 프로세스 전체에서 센다)을 실패시켜 0시 재시도를 확인한다. Supabase가 설정되면 이 분기를 타지 않는다.
+let demoRevealFailures = 0;
+function demoRevealFailure() {
+  const limit = Number(process.env.DEMO_REVEAL_FAILURES);
+  if (!(limit > 0) || Date.now() < REVEAL_AT.getTime() || demoRevealFailures >= limit) return;
+  demoRevealFailures++;
+  throw new Error(`데모: 공개 직후 서버 오류 흉내 ${demoRevealFailures}/${limit} (DEMO_REVEAL_FAILURES)`);
 }
 
 export async function getSpecialTrees(): Promise<Tree[]> {

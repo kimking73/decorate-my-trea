@@ -90,7 +90,7 @@ export default function TreeView(p: Props) {
   const reader = !p.isOwner && !!p.reader;
   const canRead = p.isOwner || reader;
   // 0시에 요청을 흩는 범위: 편지를 읽을 주인·열람 링크는 짧게, 방문자는 길게 (spec.md 4.5)
-  const revealPhase = useRevealRefresh(p.revealAt, revealed, canRead ? 30_000 : 120_000);
+  const reveal = useRevealRefresh(p.revealAt, revealed, canRead ? 30_000 : 120_000);
 
   function say(m: string) {
     setNotice(m);
@@ -98,6 +98,7 @@ export default function TreeView(p: Props) {
   }
 
   function onOrnament(o: SceneOrnament) {
+    if (!revealed && reveal.phase !== "idle") return say("🎁 편지를 꺼내는 중이에요. 조금만 기다려 주세요");
     if (!revealed) return say(`🔒 편지는 크리스마스에 열려요! (D-${p.season.daysLeft})`);
     if (!canRead) return say("🤫 편지는 트리 주인만 읽을 수 있어요");
     const l = letterMap.get(o.id);
@@ -209,11 +210,18 @@ export default function TreeView(p: Props) {
           </nav>
         )}
 
-        {revealPhase !== "idle" && (
-          <div role="status" className="pop-in fixed inset-x-0 top-4 z-40 mx-auto w-max max-w-[90%] rounded-full bg-black/75 px-4 py-2 text-sm text-white">
-            {revealPhase === "opening"
-              ? "🎁 산타가 편지를 꺼내는 중이에요…"
-              : "🎅 편지 상자가 붐벼요. 잠시 뒤 새로고침해 주세요"}
+        {reveal.phase !== "idle" && (
+          <div role="status" className="pop-in fixed inset-x-0 top-14 z-40 mx-auto flex w-max max-w-[90%] items-center gap-2 rounded-full bg-black/75 px-4 py-2 text-sm text-white">
+            {reveal.phase === "opening" ? (
+              "🎁 산타가 편지를 꺼내는 중이에요…"
+            ) : (
+              <>
+                <span>🎅 편지 상자가 붐벼요</span>
+                <button type="button" onClick={reveal.retry} className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold text-black">
+                  다시 시도
+                </button>
+              </>
+            )}
           </div>
         )}
 
