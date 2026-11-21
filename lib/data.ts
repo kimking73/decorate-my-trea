@@ -28,6 +28,8 @@ export type Tree = {
   department: string | null;
   kind: "user" | "professor" | "special";
   description: string | null;
+  is_open: boolean;
+  tree_color: string | null;
   created_at: string;
 };
 
@@ -41,19 +43,20 @@ export type OrnamentRow = {
 export type Stats = { tree_count: number; letter_count: number; confession_count: number; today_count: number };
 
 // select('*') 는 컬럼 단위 권한 때문에 실패하므로 명시적으로 나열
+// 0003 이 is_open·tree_color 를 더했다 (spec.md 4.6·4.7 · 5.3)
 export const TREE_COLUMNS =
-  "id, owner_id, slug, title, owner_name, theme, department, kind, description, created_at";
+  "id, owner_id, slug, title, owner_name, theme, department, kind, description, is_open, tree_color, created_at";
 
 // ---------- 데모 모드 (Supabase 미설정 시 화면 미리보기용) ----------
 const DEMO_TREES: Tree[] = [
   {
     id: "demo", owner_id: null, slug: "demo", title: "포스테키안님의 트리", owner_name: "포스테키안",
-    theme: "classic", department: "cse", kind: "user", description: null,
+    theme: "classic", department: "cse", kind: "user", description: null, is_open: true, tree_color: null,
     created_at: new Date().toISOString(),
   },
   {
     id: "demo-prof", owner_id: null, slug: "prof-demo", title: "OO 교수님께 드리는 트리", owner_name: "OO 교수님",
-    theme: "chalkboard", department: null, kind: "professor",
+    theme: "chalkboard", department: null, kind: "professor", is_open: true, tree_color: null,
     description: "한 학기 동안 감사했습니다! 교수님께 익명으로 마음을 전해요.",
     created_at: new Date().toISOString(),
   },
