@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import TreeStyleForm from "@/components/TreeStyleForm";
-import { getMyTree, getOrnaments, getRevealAt, getUser } from "@/lib/data";
+import { getMyTree, getOrnaments, getRevealAt, getUser, loginPath } from "@/lib/data";
 import { getSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // 내 트리 꾸미기: 트리 색·배경 테마 (spec.md 4.7). 트리 주인만
 export default async function MyTreeStylePage() {
   const user = await getUser();
-  if (!user) redirect("/login?next=/me/style");
+  if (!user) redirect(loginPath("/me/style"));
   const tree = await getMyTree(user.id);
   if (!tree) redirect("/me");
   const [ornaments, revealAt] = await Promise.all([getOrnaments(tree.id), getRevealAt()]);

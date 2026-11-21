@@ -5,7 +5,7 @@ import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
 import Toast from "@/components/Toast";
 import { adminResolve, adminSetTreeOpen } from "@/app/actions";
 import { DEPARTMENTS } from "@/lib/constants";
-import { getAdminSpecialTrees, getProfile, getReportedLetters, getUser } from "@/lib/data";
+import { getAdminSpecialTrees, getProfile, getReportedLetters, getUser, loginPath } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ const TOASTS: Record<string, string> = {
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; toast?: string }> }) {
   const user = await getUser();
-  if (!user) redirect("/login?next=/admin");
+  if (!user) redirect(loginPath("/admin"));
   const profile = await getProfile();
 
   if (!profile?.is_admin) {
@@ -116,7 +116,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold">{t.owner_name}</p>
                     <p className="truncate text-xs text-slate-500">
-                      {[DEPARTMENTS.find((d) => d.id === t.department)?.name, `편지 ${t.letter_count}통`].filter(Boolean).join(" · ")}
+                      {[DEPARTMENTS.find((d) => d.id === t.department)?.name, `편지 ${t.is_open ? `${t.letter_count}통` : "-"}`].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                   <span className="flex shrink-0 items-center gap-1 text-sm font-bold" aria-label={`관심 ${t.like_count}`}>

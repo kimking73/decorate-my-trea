@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import TreeForm from "@/components/TreeForm";
-import { getMyTree, getProfile, getRevealAt, getUser } from "@/lib/data";
+import { getMyTree, getProfile, getRevealAt, getUser, loginPath } from "@/lib/data";
 import { getSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // 트리가 없으면 새로 만들기, 있으면 이름 바꾸기 (같은 경로, spec.md 5.1)
 export default async function CreatePage() {
   const user = await getUser();
-  if (!user) redirect("/login?next=/create");
+  if (!user) redirect(loginPath("/create"));
   const [tree, profile, revealAt] = await Promise.all([getMyTree(user.id), getProfile(), getRevealAt()]);
   const { progress, bulbsOn, daysLeft, revealed } = getSeason(Date.now(), revealAt);
 

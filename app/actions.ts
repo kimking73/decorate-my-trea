@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { isTreeColor, THEMES, USER_THEME_IDS, type ThemeId } from "@/lib/constants";
+import { DEPARTMENTS, isTreeColor, THEMES, USER_THEME_IDS, type ThemeId } from "@/lib/constants";
 import {
-  DEMO_SESSION_COOKIE, demoMode, demoProfessorBaseCount, readDemoSession, type DemoSession,
+  DEFAULT_DEMO_SESSION, DEMO_SESSION_COOKIE, demoMode, demoProfessorBaseCount, readDemoSession, type DemoSession,
 } from "@/lib/data";
 
 function randomSlug(len = 8) {
@@ -21,7 +21,9 @@ function readSpecialTreeForm(fd: FormData) {
   const themeRaw = String(fd.get("theme") ?? "chalkboard") as ThemeId;
   const theme = themeRaw in THEMES ? themeRaw : "chalkboard";
   const description = String(fd.get("description") ?? "").trim().slice(0, 200) || null;
-  return { title, owner_name, theme, description };
+  const deptRaw = String(fd.get("department") ?? "");
+  const department = DEPARTMENTS.some((d) => d.id === deptRaw) ? deptRaw : null;
+  return { title, owner_name, theme, description, department };
 }
 
 export type FormState = { error?: string } | undefined;
@@ -41,7 +43,7 @@ function safeNext(next: FormDataEntryValue | null) {
 
 export async function demoSignIn(fd: FormData) {
   if (!demoMode) redirect("/login");
-  await writeDemoSession((await readDemoSession()) ?? { likes: [] });
+  await writeDemoSession((await readDemoSession()) ?? DEFAULT_DEMO_SESSION);
   redirect(safeNext(fd.get("next")));
 }
 
@@ -110,7 +112,7 @@ export async function adminCreateSpecialTree(_: FormState, fd: FormData): Promis
   if (!v.title || !v.owner_name) return { error: "제목과 이름을 입력해주세요." };
   const { error } = await supabase.from("trees").insert({
     owner_id: user.id, slug, kind, title: v.title, owner_name: v.owner_name,
-    theme: v.theme, description: v.description,
+    theme: v.theme, description: v.description, department: v.department,
   });
   if (error) return { error: `생성 실패: ${error.message}` };
   revalidatePath("/admin");

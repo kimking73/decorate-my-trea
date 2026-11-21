@@ -4,7 +4,7 @@ import ShareLinkButtons from "@/components/ShareLinkButtons";
 import Toast from "@/components/Toast";
 import TreeScene from "@/components/TreeScene";
 import { demoSignOut } from "@/app/actions";
-import { demoMode, getMyTree, getOrnaments, getProfile, getRevealAt, getUser } from "@/lib/data";
+import { demoMode, getMyTree, getOrnaments, getProfile, getRevealAt, getUser, loginPath } from "@/lib/data";
 import { SITE_URL, THEMES, type ThemeId } from "@/lib/constants";
 import { getSeason } from "@/lib/season";
 
@@ -18,7 +18,7 @@ const TOASTS: Record<string, string> = {
 
 export default async function MePage({ searchParams }: { searchParams: Promise<{ toast?: string }> }) {
   const user = await getUser();
-  if (!user) redirect("/login?next=/me");
+  if (!user) redirect(loginPath("/me"));
   const { toast } = await searchParams;
   const [tree, profile, revealAt] = await Promise.all([getMyTree(user.id), getProfile(), getRevealAt()]);
   const ornaments = tree ? await getOrnaments(tree.id) : [];

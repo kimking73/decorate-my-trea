@@ -87,6 +87,12 @@ export const demoMode = !isConfigured;
 export const DEMO_SESSION_COOKIE = "demo_session";
 export const DEMO_USER_ID = "demo-user";
 export type DemoSession = { tree?: { name: string; color: string | null; theme: string }; likes: string[] };
+// 데모 로그인하면 와이어프레임 /me처럼 트리가 있는 상태로 시작한다 (트리 없음 화면은 로그아웃 후 /create 전에는 못 봄 — 4.2)
+export const DEFAULT_DEMO_SESSION: DemoSession = { tree: { name: "포닉스", color: null, theme: "classic" }, likes: [] };
+/** 로그인이 필요한 화면에서 로그인 안 했을 때 갈 곳. 데모는 바로 데모 로그인 (spec.md 4.2) */
+export function loginPath(next: string) {
+  return `${isConfigured ? "/login" : "/auth/demo"}?next=${encodeURIComponent(next)}`;
+}
 
 export async function readDemoSession(): Promise<DemoSession | null> {
   if (isConfigured) return null;
