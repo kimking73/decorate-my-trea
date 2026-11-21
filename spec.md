@@ -1,6 +1,6 @@
 # 포스텍 트리 — 제품 스펙
 
-> 마지막 갱신: 2026-11-21 (토스트 표시 규칙: 5.1 공통 상태 — 2.5초 유지, 같은 문구 다시 표시, `?toast=` 주소 정리 · F10 내 페이지를 내 트리로 통합: 5.1 `/me`·`/t/[slug]`, 3장, 2.2 `TreeView` `ownerMenu`, 2.1 `OwnerMenu.tsx` · F9 와이어프레임 전체를 데모로: 4.2 데모 로그인, 2.2 `treeColor`, 2.3 데모 분기·새 함수 이름, 4.7 임시 트리 색 · F4 서버 경계 점검: 2.3 화면별 실제 호출·오류 계약, 5.1 일시적 오류 화면, 2.1 `app/error.tsx` · 7장 타임라인 링크를 실제 주소로 교체 · F6 화면 구조 정리: 2.1에 프론트엔드 새 컴포넌트 · 와이어프레임 반영: 교수님 관심(하트)·허락 흐름, 내 트리 색·테마, 하트·허락 4.6, 내 트리 꾸미기 4.7, 화면별 데이터·액션 2.3, 화면 5.1, DB 5.3, 미정 6장) · 2026-11-17 (애니메이션 성능 규칙·동작 줄이기(C2): 4.2, 2.1 · 데모 전용 주인 화면 미리보기 `?owner=1`: 4.2 · 장식 페이지 넘김(C3): 5.1 · 12/25 0시 동시 접속 대비: 4.5, 6장 · 서버 담당: 2장 · 문서 간 중복 제거·환경변수 표 통합: 1.1, 7장 · QA용 데모 배포·공유 주소 기본값: 1.1 · plan.md 기술 스택 작업 가이드 규칙: 7장 · 작업 관리 규칙 추가: 7장 · 프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3~6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
+> 마지막 갱신: 2026-11-21 (토스트 표시 규칙: 5.1 공통 상태 — 2.5초 유지, 같은 문구 다시 표시, `?toast=` 주소 정리 · T9 리뷰: 4.6 열람 링크 주소 Referrer 차단·운영 · C13 리뷰: 3장 새로 고친 뒤 뒤로 가기 · C13 편지 쓰기 2단계: 3장 친구 흐름(미리보기·뒤로 가기·임시 저장·오류 제목), 2.2 `WriteForm` props · T9 교수님께 편지 전하기 결정 — 비밀 열람 링크: 4.6, 3장, 2.1 `ReadLinkBox.tsx`, 2.2 `TreeView` `reader`, 2.3 `/t/[slug]?key=`·`/admin`, 5.1, 5.3 `0005`, 6장에서 결정으로 이동·특별 트리 안 씀 · F10 내 페이지를 내 트리로 통합: 5.1 `/me`·`/t/[slug]`, 3장, 2.2 `TreeView` `ownerMenu`, 2.1 `OwnerMenu.tsx` · F9 와이어프레임 전체를 데모로: 4.2 데모 로그인, 2.2 `treeColor`, 2.3 데모 분기·새 함수 이름, 4.7 임시 트리 색 · F4 서버 경계 점검: 2.3 화면별 실제 호출·오류 계약, 5.1 일시적 오류 화면, 2.1 `app/error.tsx` · 7장 타임라인 링크를 실제 주소로 교체 · F6 화면 구조 정리: 2.1에 프론트엔드 새 컴포넌트 · 와이어프레임 반영: 교수님 관심(하트)·허락 흐름, 내 트리 색·테마, 하트·허락 4.6, 내 트리 꾸미기 4.7, 화면별 데이터·액션 2.3, 화면 5.1, DB 5.3, 미정 6장) · 2026-11-17 (애니메이션 성능 규칙·동작 줄이기(C2): 4.2, 2.1 · 데모 전용 주인 화면 미리보기 `?owner=1`: 4.2 · 장식 페이지 넘김(C3): 5.1 · 12/25 0시 동시 접속 대비: 4.5, 6장 · 서버 담당: 2장 · 문서 간 중복 제거·환경변수 표 통합: 1.1, 7장 · QA용 데모 배포·공유 주소 기본값: 1.1 · plan.md 기술 스택 작업 가이드 규칙: 7장 · 작업 관리 규칙 추가: 7장 · 프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3~6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
 
 ## 1. 개요
 - **목표**: POSTECH 학생들이 인스타그램에 자기 트리 링크를 올리고, 친구들이 **익명 편지**를 장식으로 달아주는 연말 이벤트. 편지는 **12/25 00:00 KST**에 열린다.
@@ -78,7 +78,7 @@
 | --- | --- | --- |
 | 트리 화면 / 인터랙션 | 클라이언트 | `components/TreeScene.tsx`, `TreeView.tsx`, `WriteForm.tsx`, `LetterModal.tsx`, `Snow.tsx`, `Countdown.tsx`, `ShareButtons.tsx`, `lib/season.ts`, `app/globals.css` (애니메이션 부분), `scripts/perf-measure.mjs`, `docs/qa-c2-device.md` |
 | 카카오톡 공유 (선택) | 클라이언트 | `lib/kakao.ts` |
-| 페이지 / 폼 | 프론트엔드 | `app/**/page.tsx`, `app/**/loading.tsx`, `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx`, `app/opengraph-image.png`, `components/TreeForm.tsx`, `LoginButtons.tsx`, `ClaimForm.tsx`, `AdminCreateForm.tsx`, (새로) `ProfessorList.tsx`, `TreeStyleForm.tsx`, `OwnerMenu.tsx`, `Toast.tsx`, `ShareLinkButtons.tsx`, `InAppNotice.tsx`, `ConfirmSubmitButton.tsx`, `LoadingSkeleton.tsx`, `package.json` (프론트엔드 의존성) |
+| 페이지 / 폼 | 프론트엔드 | `app/**/page.tsx`, `app/**/loading.tsx`, `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx`, `app/opengraph-image.png`, `components/TreeForm.tsx`, `LoginButtons.tsx`, `ClaimForm.tsx`, `AdminCreateForm.tsx`, (새로) `ProfessorList.tsx`, `TreeStyleForm.tsx`, `OwnerMenu.tsx`, `Toast.tsx`, `ShareLinkButtons.tsx`, `ReadLinkBox.tsx`, `InAppNotice.tsx`, `ConfirmSubmitButton.tsx`, `LoadingSkeleton.tsx`, `package.json` (프론트엔드 의존성) |
 | 데이터 / 서버 | 서버 | `app/actions.ts`, `app/api/**`, `app/auth/**`, `middleware.ts`, `lib/data.ts`, `lib/supabase/**`, `lib/moderation.ts`, `supabase/migrations/**`, `scripts/test-rls.sql`, Vercel·Supabase 설정 |
 | CI / 관측 | 서버 | `.github/workflows/**`, (선택) `sentry.*.config.ts`, `instrumentation.ts` |
 | 작업 관리 | 공통 | `plan.md`, `scripts/sync-plan.mjs` (7장) |
@@ -86,8 +86,10 @@
 
 ### 2.2 팀 간 계약 (바꾸려면 이 문서를 먼저 수정하고 상대에게 공유)
 1. **데이터 타입**: `lib/data.ts`의 `Tree`, `OrnamentRow`, `Stats`
-2. **컴포넌트 props**: `TreeScene` (`theme`, `ornaments`, `season`, `onOrnamentClick`, `starMode`, `crying`, `lockedIcons`), `TreeView` (`tree`, `ornaments`, `letters`, `isOwner`, `isLoggedIn`, `season`, `revealAt`, `shareUrl`, `justAdded`, `egg`, `demo`, `ownerMenu`)
+2. **컴포넌트 props**: `TreeScene` (`theme`, `ornaments`, `season`, `onOrnamentClick`, `starMode`, `crying`, `lockedIcons`), `TreeView` (`tree`, `ornaments`, `letters`, `isOwner`, `isLoggedIn`, `season`, `revealAt`, `shareUrl`, `justAdded`, `egg`, `demo`, `ownerMenu`, `reader`)
+   - `TreeView`의 `reader?: boolean`(T9): 교수님 비밀 열람 링크(`?key=`)가 맞을 때 `true`. 주인처럼 공개 후 장식을 눌러 편지를 읽지만, 공유·스토리 저장·주인 메뉴·신고 버튼은 없다 (4.6). `isOwner`와 함께 `true`로 넘기지 않는다
    - `TreeView`의 `ownerMenu?: ReactNode`(F10): 주인 화면에서 공유·스토리 저장 버튼 아래에 그릴 "내 트리" 메뉴(주소·색/이름 바꾸기·관리자·로그아웃). 프론트엔드가 `OwnerMenu`로 만들어 넘기고, 없으면 예전처럼 "내 트리" 링크 하나
+   - `WriteForm` (`tree`: `id`·`slug`·`title`·`owner_name`·`theme`·`kind`·`tree_color`, `ornaments`: 트리의 `OrnamentRow[]`, `season`) (C13): `/t/[slug]/write` 페이지가 `getTreeBySlug()`·`getOrnaments()`·`getSeason()`으로 만들어 넘긴다. 미리보기 전용이라 편지 본문·고백 여부는 받지 않는다
    - `TreeScene`에 `treeColor?: string | null` (트리 색 id, 없거나 모르는 id면 `theme` 기본색. F9에서 추가, `TreeView`는 `tree.tree_color`를 넘긴다). 홈·`/create`·`/me/style` 미리보기도 `TreeScene`을 재사용한다 (4.7)
 3. **API**: 아래 5장 `POST /api/letters`
 4. **장식 ID**: `lib/constants.ts`의 장식 `id`는 DB `letters.ornament_type`에 저장된다. **이미 쓰인 id는 바꾸거나 지우지 않는다** (아이콘 이미지만 교체). 트리 색·배경 테마 id(`trees.tree_color`, `trees.theme`)도 같은 규칙이다.
@@ -105,8 +107,9 @@
 | `/me/style` | `getUser()`, `getMyTree()` | `saveTreeStyle(FormState, FormData)` — `tree_color`·`theme` 저장, 트리 주인만, 성공 시 `/me?toast=styled` |
 | `/professors` | `getUser()` | `getProfessors(): Promise<ProfessorRow[]>` (관심순), `toggleProfessorLike(treeId): Promise<{ liked: boolean; count: number } \| { error: string }>` — DB 함수 `list_professors()`·`toggle_professor_like()`는 0003(S20)에 있음 |
 | `/t/[slug]` · `/t/[slug]/write` | `getTreeBySlug()`, `getUser()`, `getOrnaments()`, `getRevealAt()`, `getLetters()` (주인일 때만), `POST /api/letters`, 신고는 `TreeView`가 `report_letter` RPC 직접 호출 (클라이언트 소유) | `getTreeBySlug()`가 허락 대기 교수님 트리는 `null` 반환 (4.6) |
+| `/t/[slug]?key=…` 교수님 열람 (T9) | `getLettersByReadKey(slug, key): Promise<Letter[] \| null>` — `null` = 키가 틀림(방문자 화면), 배열 = 키가 맞음(공개 전이나 편지가 없으면 `[]`). 교수님 트리이고 `key`가 있을 때만 부른다 | - (T9에서 추가) |
 | `/admin` 교수님 트리 만들기 | `getUser()`, `getProfile()`, `adminCreateSpecialTree` (`kind=professor` 고정, 허락 대기로 생성) | 실패 문구를 사용자용으로 (아래 오류 계약) |
-| `/admin` 교수님 목록 | 페이지가 `admin_list_special_trees` RPC를 직접 호출 | `lib/data.ts`로 옮기기, 반환에 `like_count`·`is_open`·`department` 추가(0003에 있음), `adminSetTreeOpen(FormData)` (DB `admin_set_tree_open()`은 0003에 있음), `adminUpdateSpecialTree(FormState, FormData)` (정보 수정) |
+| `/admin` 교수님 목록 | `getAdminSpecialTrees()` (반환에 `read_key: string \| null` 추가, T9), `adminIssueReadLink(FormData)` — `tree_id`로 열람 키를 새로 발급(이전 키 무효)하고 `/admin?tab=list&toast=link_issued`(실패 `failed`, 데모 `demo`)로 보냄 (T9) | `lib/data.ts`로 옮기기, 반환에 `like_count`·`is_open`·`department` 추가(0003에 있음), `adminSetTreeOpen(FormData)` (DB `admin_set_tree_open()`은 0003에 있음), `adminUpdateSpecialTree(FormState, FormData)` (정보 수정) |
 | `/admin` 신고 | 페이지가 `letters`를 직접 조회, `adminResolve(FormData)` | `getReportedLetters()` (`lib/data.ts`로 옮김), `adminResolve`가 실패를 알려 주기 (아래 오류 계약) |
 
 **오류 계약** (F4 점검, 2026-11-21) — 화면이 "없음"과 "불러오지 못함"을 구분해 보여 줄 수 있게 한다. 위 "새로 필요"와 함께 S21에서 서버가 맞춘다.
@@ -114,7 +117,7 @@
 - 예외: `getStats()`·`getRevealAt()`은 지금처럼 기본값으로 대신한다 (홈은 숫자가 틀려도 떠야 한다).
 - **서버 액션**: 실패하면 `{ error: "사용자에게 보일 문구" }`. DB 오류 메시지를 그대로 넣지 않는다 (지금 `adminCreateSpecialTree`가 `생성 실패: ${error.message}`). 폼으로 부르는 관리자 액션(`adminResolve`, 새 `adminSetTreeOpen`)도 `FormState`를 돌려줘서 실패를 알릴 수 있게 한다.
 - **데모 분기 (F9)**: 새 조회 함수 `getProfessors()`, `getAdminSpecialTrees()`(교수님 목록 탭, `admin_list_special_trees`), `getReportedLetters()`와 새 서버 액션 `toggleProfessorLike`, `saveTreeStyle`, `adminSetTreeOpen`은 데모 모드에서 고정 데이터와 데모 로그인 쿠키(4.2)로 동작한다. 실서버 분기는 이 표의 계약대로 RPC·update를 부르게 만들어 두지만, 실서버 확인과 `adminUpdateSpecialTree`·`getTreeBySlug`의 허락 대기 처리는 S21에서 한다.
-- 화면에서 쓰지 않는 함수: `getOwnedSpecialTrees()`, `getSpecialTrees()`, `claimTree`, `adminIssueClaimCode` — 지우지 않고 남긴다 (6장).
+- 화면에서 쓰지 않는 함수: `getOwnedSpecialTrees()`, `getSpecialTrees()`, `claimTree`, `adminIssueClaimCode` — 지우지 않고 남긴다 (6장). 교수님께 편지를 전하는 방법은 초대 코드가 아니라 열람 링크다 (4.6, T9).
 
 - `ProfessorRow = { id, slug, owner_name, department, is_open, like_count, liked_by_me }` — `liked_by_me`는 로그인했을 때만 의미가 있고, 누가 눌렀는지는 돌려주지 않는다.
 - 초대 코드(`claimTree`, `adminIssueClaimCode`)는 화면에서 뺀다. 함수와 DB는 지우지 않고 남긴다 (6장).
@@ -133,10 +136,15 @@
 
 ### 친구 (로그인 없음)
 1. 인스타 링크 → 트리 화면 → "트리 꾸며주기" (`/t/[slug]/write`)
-2. **1/2 장식 고르기**: 작은 트리 미리보기 + 탭 (기본 / POSTECH / 학과, 교수님 트리면 "교수님 전용" 탭이 맨 앞) → "이 장식으로 편지 쓰기"
-3. **2/2 편지 쓰기**: 고른 장식 표시("← 장식 다시 고르기"로 돌아갈 수 있음) + 닉네임(선택, 기본 "익명의 산타") + 편지(1~1000자, 글자 수 표시) + "💘 이 편지는 고백이에요" 체크(선택) → "트리에 달기"
+2. **1/2 장식 고르기**: 위쪽 바 "← 트리로 · 1 / 2 장식 고르기" + "○○님의 트리 꾸며주기" + 작은 트리 미리보기 + 탭 (기본 / POSTECH / 학과, 교수님 트리면 "교수님 전용" 탭이 맨 앞) → "이 장식으로 편지 쓰기"
+   - 미리보기(C13)는 `TreeScene`을 작게 그린다: 그 트리의 색(`tree_color`)·테마·전구 단계 + 이미 달린 장식(트리 화면의 마지막 페이지) + 고른 장식을 다음 자리에 pop-in. 미리보기 안의 별·포닉스·장식은 눌리지 않는다 (`inert`). 마지막 페이지가 꽉 찼으면 새 페이지에 고른 장식 하나만 그린다
+3. **2/2 편지 쓰기**: 위쪽 바 "← 장식 다시 고르기 · 2 / 2 편지 쓰기" + 고른 장식 카드 + 닉네임(선택, 기본 "익명의 산타") + 편지(1~1000자, 글자 수 표시) + "💘 이 편지는 고백이에요" 체크(선택, 교수님 트리에는 없음) + "편지는 12월 25일 0시에 트리 주인만 읽을 수 있어요." → "트리에 달기"
+   - **뒤로 가기**: 2단계로 갈 때 브라우저 기록을 한 칸 추가해, 폰의 뒤로 가기는 "← 장식 다시 고르기"와 같다 (한 번 더 누르면 트리로). 단계를 오가도 입력은 그대로다. 새로 고치면 1단계에서 다시 시작하고, 남아 있던 2단계 기록 표시는 지운다 (그래야 "← 장식 다시 고르기" 한 번으로 1단계에 돌아온다)
+   - **임시 저장**: 고른 장식·닉네임·편지·고백 체크를 그 탭의 `sessionStorage`(트리별 키)에 저장해, 같은 탭에서 다시 들어오면 되살린다 (인앱 브라우저가 새로 고쳐도 남음). "트리에 달기"가 성공하면 지운다. 서버에는 아무것도 보내지 않는다
+   - 버튼은 화면 아래에 고정하지 않고 내용 끝에 둔다 (인앱 브라우저 키보드가 입력창·버튼을 가리지 않게)
 4. 성공하면 `/t/[slug]?added=1`로 돌아가 새 장식이 pop-in. 완료 화면에는 "트리 보러 가기"·"나도 트리 만들기"
 5. 실패 문구 (5.2 응답 코드별): `400` 금칙어 "쓸 수 없는 말이 들어 있어요" · 길이 오류 · `404` "트리를 찾을 수 없어요" · `429` "잠시만 쉬었다 써 주세요 — 루돌프가 숨 고르는 중이에요". 입력한 내용은 지우지 않는다.
+   - 2단계 위쪽에 오류 상자(`role="alert"`, 제목 + 본문)로 보여 주고 그 자리로 스크롤한다. 제목은 응답 코드로 정하고(`400` "쓸 수 없는 말이 들어 있어요" — 길이·장식은 클라이언트가 먼저 검사하므로 `400`은 대부분 금칙어 · `404` · `429` 위 문구 · 그 밖 "편지를 달지 못했어요"), 본문은 서버의 `error` 문구를 그대로 쓴다. 응답 형식(5.2)은 바꾸지 않는다. 네트워크 오류는 "인터넷 연결을 확인해 주세요".
 
 ### 학생 → 교수님 (`/professors`)
 1. 홈의 "교수님께 마음 전하기" 카드 → `/professors` (로그인 없이 볼 수 있음)
@@ -148,13 +156,15 @@
 ### 교수님 트리 (관리자)
 - 관리자가 `/admin` "교수님 트리 만들기" 탭에서 교수님 트리를 **허락 대기** 상태로 만든다 (칠판 테마, 교수님 전용 장식, 학과 선택). 트리 주인은 만든 관리자 계정이다.
 - "교수님 목록" 탭에서 관심 수·편지 수를 보고, 교수님께 허락을 받으면 "허락 받음 · 트리 열기"로 연다. 열린 트리는 "트리 보기"·"정보 수정". 상태로 거르기(전체 / 허락 대기 / 트리 열림)
-- 초대 코드 발급·입력 화면은 없다 (교수님께 편지를 전하는 방법은 6장).
-- 특별 트리(`kind = special`)는 화면에서 만들지 않는다 (DB 값은 유지).
+- 초대 코드 발급·입력 화면은 없다. 교수님께는 **비밀 열람 링크**로 편지를 전한다 (T9, 4.6): "교수님 목록"에서 교수님마다 "열람 링크 만들기" → 링크 복사 → 관리자가 교수님께 직접 전달(메일·메신저). 다시 만들면 이전 링크는 못 쓴다.
+- 교수님은 링크로 **로그인 없이** 자기 트리를 열고, 12/25 0시 이후 장식을 눌러 편지를 읽는다 (공개 전에는 잠금·카운트다운).
+- 교수님 개인 계정은 일반 학생과 같다. 로그인하면 자기 트리(`kind = user`)를 만들 수 있다 — 교수님 트리는 관리자 소유 `kind = professor`라 1인 1트리(`trees_one_per_user`, `kind = 'user'`만)와 겹치지 않는다.
+- 특별 트리(`kind = special`, 학생회 등)는 **쓰지 않는다** (T9 결정). DB 값은 유지하고 화면에서 만들지 않는다.
 
 ## 4. 기능 규칙
 
 ### 4.1 핵심 제약
-- **공개 시점은 DB에서 강제**: 편지 본문은 RLS로 `트리 주인 AND now() >= app_config.reveal_at`일 때만 조회 가능. 클라이언트 시간과 무관.
+- **공개 시점은 DB에서 강제**: 편지 본문은 RLS로 `트리 주인 AND now() >= app_config.reveal_at`일 때만 조회 가능. 클라이언트 시간과 무관. 교수님 열람 링크도 같다: `get_letters_by_read_key()`가 `is_revealed()`를 확인한다 (4.6).
 - **익명**: 작성자 계정을 저장하지 않음. IP와 브라우저 ID는 솔트 해시(`ip_hash`, `client_hash`)만 저장, 누구에게도 노출하지 않음.
 - **고백 편지**: 작성자가 체크. 트리에서는 일반 장식과 똑같이 보이고, `get_ornaments`도 고백 여부를 반환하지 않음 → 주인도 공개 전엔 모름. 홈 화면 "지금까지 총 N명이 고백하였습니다"에만 집계. 공개 후 주인이 편지를 열 때만 라벨 표시.
 
@@ -216,6 +226,16 @@
 - 관심 수는 누구나 볼 수 있지만 **누가 눌렀는지는 공개하지 않는다** (본인이 눌렀는지만 `liked_by_me`로).
 - 목록은 관심 수 내림차순(같으면 이름순). 검색은 이름·학과 부분 일치이며, 교수님 수가 적으므로 받은 목록을 화면에서 걸러도 된다.
 
+**교수님 비밀 열람 링크 (T9)** — 교수님 트리의 주인은 만든 관리자 계정이라, 교수님은 링크로 편지를 읽는다.
+- 링크: `${SITE_URL}/t/<slug>?key=<열람 키>`. 키는 DB가 만드는 32자 무작위 문자열(`trees.read_key`, 122비트)이며, 관리자만 `admin_issue_read_key()`로 발급한다. 교수님 트리(`kind = professor`)에만 있다. 다시 발급하면 이전 키는 바로 무효가 된다 (링크가 새면 다시 만든다).
+- **열람 권한은 DB가 판단**: 본문은 `get_letters_by_read_key(slug, key)`가 키가 맞고 `is_revealed()`이고 트리가 열려 있을 때만 돌려준다 (숨김 편지 제외). 공개 전·틀린 키·빈 키·`null`은 빈 결과. 공개 시각은 모든 트리가 같다 (12/25 0시).
+- 키 확인(`check_read_key`)은 공개 전에도 맞는지만 알려 준다 — 공개 전 열람 화면(잠금·카운트다운)을 그리기 위해서이며 본문·고백 여부는 내보내지 않는다.
+- 화면: 키가 맞으면 주인과 같은 열람 화면(`TreeView` `reader`) — 공개 전엔 "편지는 12월 25일 0시에 열려요", 공개 후 장식을 눌러 편지(고백 라벨 포함)를 읽는다. 공유·스토리 저장·주인 메뉴·**신고 버튼은 없다** (신고는 주인 계정 권한). 키가 틀리면 아무 안내 없이 일반 방문자 화면.
+- 키는 `claim_code`처럼 관리자 말고는 읽을 수 없다: anon·authenticated의 컬럼 권한에 넣지 않고(`claim_code`와 같음), insert·update 권한에도 넣지 않는다. 관리자는 `admin_list_special_trees()`로만 본다.
+- 키가 붙은 주소는 검색에 안 잡히게 `robots: noindex, nofollow`, 다른 사이트로 주소가 넘어가지 않게 `referrer: no-referrer`(오래된 인앱 WebView는 기본값이 전체 주소를 보낸다), OG·공유 주소에는 키를 넣지 않는다. 관측 도구(S15)를 붙일 때 `key` 쿼리를 수집하지 않게 한다.
+- **운영**: 링크는 관리자가 교수님께만 직접 보낸다 (12월 초). 12/25에 교수님 링크로 편지가 보이는지 확인한다. 배포 전에 운영 DB에 `0005`를 먼저 적용한다 (없으면 `?key=` 주소가 오류 화면, 링크 만들기가 실패).
+- 데모 모드에서만 `/t/prof-demo?key=demo`가 맞는 키다 (`?dday=0`이면 가짜 편지가 열림). Supabase가 설정된 서버에서는 데모 키가 없다.
+
 ### 4.7 내 트리 꾸미기 (`/me/style`)
 - 트리 주인만 바꾼다 (일반 트리, RLS의 기존 주인 update 권한).
 - **트리 색**(`trees.tree_color`)과 **배경 테마**(`trees.theme`)를 따로 고른다. 와이어프레임의 임시 값: 트리 색 초록·포스텍 레드·눈꽃·금색·분홍·남색, 배경 밤하늘·눈 오는 날·벽난로·포스텍 캠퍼스. 실제 id·색 값은 디자인 확정(D2) 후 `lib/constants.ts`에 넣는다.
@@ -236,7 +256,7 @@
 | `/me` | "내 트리"로 들어가는 주소. 트리가 있으면 내 트리(`/t/[slug]` 주인 화면)로 보내고(`?toast=`는 그대로 넘김), 없으면 "아직 트리가 없어요" + 내 트리 만들기 + 로그아웃. 화면 이름과 링크 문구는 "내 트리"(홈 버튼은 "내 트리 보러 가기") — 예전 "내 페이지"는 내 트리에 합쳤다 (F10) | 필요 |
 | `/me/style` | 내 트리 꾸미기: 트리 색·배경 테마 선택, 미리보기, 저장 (4.7) | 필요 (주인) |
 | `/professors` | 교수님께 마음 전하기: 관심순 목록, 검색, 하트, 트리 꾸미러 가기 (4.6) | - (하트는 필요) |
-| `/t/[slug]` | 트리 보기 (주인/방문자 분기). 허락 대기 교수님 트리는 없는 트리로 처리. **주인 화면 = 내 트리** (F10, 와이어프레임 "내 트리 보러 가기"): 제목·편지 수·D-day, 트리, 링크 공유·스토리용 이미지 저장, 내 트리 주소, 색·테마 바꾸기·이름 바꾸기, 관리자 링크(관리자만), 로그아웃 | - |
+| `/t/[slug]` | 트리 보기 (주인/방문자 분기, 교수님 트리는 `?key=` 열람 링크 분기 — 4.6). 허락 대기 교수님 트리는 없는 트리로 처리. **주인 화면 = 내 트리** (F10, 와이어프레임 "내 트리 보러 가기"): 제목·편지 수·D-day, 트리, 링크 공유·스토리용 이미지 저장, 내 트리 주소, 색·테마 바꾸기·이름 바꾸기, 관리자 링크(관리자만), 로그아웃 | - |
 | `/t/[slug]/write` | 1/2 장식 고르기 → 2/2 편지 쓰기 → 트리로 복귀 (3장) | - |
 | `/admin` | 탭 3개: 교수님 트리 만들기 / 교수님 목록(허락 상태) / 신고 N. 관리자가 아니면 "관리자만 볼 수 있어요" | 관리자 |
 
@@ -272,6 +292,12 @@
 - `profiles(id, display_name, is_admin)`
 - `trees(id, owner_id, slug, title, owner_name, theme, department, kind[user|professor|special], description, claim_code)` — 일반 유저 1인 1트리
   - **추가 예정** (마이그레이션 `0003`): `is_open boolean not null default true` (교수님 트리는 `false`로 생성, 4.6) · `tree_color text` (null이면 테마 기본색, 4.7). 둘 다 select 권한·`TREE_COLUMNS`에 넣는다. 주인 `grant update`에는 `tree_color`를 **추가**한다 (기존 `theme`·이름 권한은 유지, `is_open`은 넣지 않음). 이미 있는 교수님 트리는 허락을 받지 않았으므로 `0003`에서 `update trees set is_open = false where kind = 'professor'`로 닫는다 (이미 달린 편지는 지우지 않고, 트리를 열면 다시 보인다) · check 제약 `trees_chalkboard_professor_only`: `kind <> 'user' or theme <> 'chalkboard'` (4.7). 적용 전에 일반 트리 중 `chalkboard`가 있으면 `classic`으로 바꾼다
+- **추가** (마이그레이션 `0005`, T9, 4.6): `trees.read_key text unique` — 교수님 열람 키. anon·authenticated의 select·insert·update 컬럼 권한에 넣지 않는다 (`claim_code`와 같음). RPC:
+  - `admin_issue_read_key(p_tree_id uuid) returns text` — 관리자만(`is_admin()`), `kind = 'professor'`만, 새 키 발급(이전 키 무효). authenticated·service_role만 실행
+  - `check_read_key(p_slug text, p_key text) returns boolean` — 키가 맞는지만. anon·authenticated·service_role 실행
+  - `get_letters_by_read_key(p_slug text, p_key text)` → `id, ornament_type, nickname, content, is_confession, created_at` — 키가 맞고 `is_revealed()`이고 `is_open`일 때만, 숨김 제외. 빈 키·`null`·16자 미만은 거부(빈 결과). anon·authenticated·service_role 실행
+  - `admin_list_special_trees()` 반환에 `read_key` 추가 (반환 타입이 바뀌어 다시 만든다)
+  - 셋 다 `security definer`, `revoke execute ... from public, anon, authenticated` 후 필요한 역할에만 `grant`
 - `professor_likes(tree_id, user_id, created_at)` — **추가 예정**. 기본키 `(tree_id, user_id)`, `kind = 'professor'` 트리만. 테이블 직접 조회·변경은 막고 RPC로만 접근
 - `letters(id, tree_id, ornament_type, nickname, content, is_confession, ip_hash, client_hash, reported, hidden, created_at)` — `client_hash` **추가** (인덱스 `(client_hash, created_at)`)
 - RPC: `get_ornaments(tree_id)`(본문·고백 여부 제외), `get_stats()`, `report_letter`, `claim_tree`, `admin_*`
@@ -289,11 +315,14 @@
 - 12/25 플랜 증설: 부하 테스트(S18) 결과로 Supabase·Vercel을 공개 기간에만 유료로 올릴지, 비용은 누가 낼지 (4.5)
 - 필요해지면 추가 (1.1): Turnstile 봇 방어, 트리별 OG·서버 생성 스토리 이미지, Supabase CLI, Playwright E2E
 - 크리스마스 이후 서비스 종료/보관 정책
-- **교수님께 편지를 전하는 방법**: 초대 코드 화면을 뺐으므로 교수님 트리의 주인은 만든 관리자 계정이다. 공개 후 관리자가 편지를 확인해 전달할지(인쇄·이미지 등), 초대 코드(`claim_tree`, DB에 남아 있음)를 다시 화면에 넣을지 결정 필요
 - **트리 색·배경 테마 값**: 와이어프레임의 배경 4종(밤하늘·눈 오는 날·벽난로·포스텍 캠퍼스)과 기존 `THEMES`(classic·snow·pink·night·postech·chalkboard)를 어떻게 맞출지 D2에서 결정. 이미 저장된 `theme` id는 지우지 않는다
 - **이메일 OTP 로그인**: 와이어프레임 로그인 화면에는 없음. 지금처럼 `NEXT_PUBLIC_ENABLE_EMAIL_LOGIN` 테스트용으로만 둔다
 - **데모 트리 구경하기**: 홈 버튼이 `/t/demo`(데모 모드) 대신 실서버에서 무엇을 보여 줄지 (예: 운영진 트리 slug 고정)
 - 범위 밖: 모바일 네이티브 앱, 실시간 알림, 편지 답장
+
+**결정됨**
+- **교수님께 편지를 전하는 방법 (T9, 2026-11-21)**: 관리자가 교수님 트리마다 비밀 열람 링크를 만들어 전달하고, 교수님은 로그인 없이 12/25 0시 이후 읽는다 (3장, 4.6, 5.3 `0005`). 초대 코드(`claim_tree`·`claimTree`·`adminIssueClaimCode`)는 화면에서 계속 쓰지 않는다 (코드·DB는 지우지 않음). 교수님 개인 계정은 일반 학생과 같다.
+- **특별 트리(`kind = special`, 학생회 등)는 쓰지 않는다 (T9, 2026-11-21)**. DB 값·함수는 남기고 화면에서 만들지 않는다.
 
 ## 7. 작업 관리 (타임라인 · plan.md)
 - **기준은 타임라인**: 📅 [포스텍 트리 개발 타임라인](https://claude.ai/artifact/LVz71ybViGJ7xw6Ga1mD1Y). 사람은 타임라인을 보고 일한다. 작업 추가·일정·선행 작업·완료 기준·완료 체크는 타임라인에서 바꾼다.

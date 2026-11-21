@@ -191,3 +191,13 @@ export async function adminSetTreeOpen(fd: FormData) {
   revalidatePath("/professors");
   redirect(`/admin?tab=list&toast=${error ? "failed" : fd.get("open") === "1" ? "opened" : "closed"}`);
 }
+
+// ---------- 관리자: 교수님 비밀 열람 링크 (spec.md 4.6, T9) ----------
+// 키는 DB(admin_issue_read_key)가 만들고, 다시 만들면 이전 키는 무효. 관리자 확인도 DB가 한다.
+export async function adminIssueReadLink(fd: FormData) {
+  if (demoMode) redirect("/admin?tab=list&toast=demo");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_issue_read_key", { p_tree_id: String(fd.get("tree_id")) });
+  revalidatePath("/admin");
+  redirect(`/admin?tab=list&toast=${error ? "failed" : "link_issued"}`);
+}

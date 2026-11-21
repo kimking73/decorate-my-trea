@@ -1,6 +1,6 @@
 # 포스텍 트리 — 구현 계획
 
-> 마지막 갱신: 2026-11-21 (타임라인에 없는 작업 추가: 토스트 표시 시간 버그 수정 · F6 완료: #10으로 main 반영, 데모 모드 375px에서 홈·로그인·404 확인. `/create`·`/me`·`/admin`은 데모 모드에서 로그인으로 넘어가 실서버 로그인 후 확인 필요 · F3 완료: next/font 자체 호스팅·framer-motion 제거 · 타임라인 링크를 실제 주소로 교체·동기화, 번호가 붙은 와이어프레임 작업을 미등록 목록에서 정리 · 와이어프레임 반영: 확정된 변경·타임라인에 아직 없는 작업) · 2026-11-20 (C2 실기기 확인 결과, 저사양 폰 확인은 베타로: docs/qa-c2-device.md) · 2026-11-17 (C2 자동 성능 측정·개선, 실기기 체크리스트: docs/qa-c2-device.md · 타임라인에 없는 작업 추가: 데모 주인 화면 미리보기 · 작업 가이드 중복 제거: 제약·명령어는 CLAUDE.md, 환경변수는 spec.md 1.1로)
+> 마지막 갱신: 2026-11-21 (타임라인에 없는 작업 추가: 토스트 표시 시간 버그 수정 · T9 리뷰: 미등록 T9 항목을 하나로 합침 · C13 리뷰: 데모 모드 편지 달기 404를 "타임라인에 아직 없는 작업"에 적음 · T9 결정 구현 — 교수님 비밀 열람 링크: 타임라인에 아직 없는 작업 3개(서버·프론트엔드·클라이언트, T9 완료 후보), 작업 가이드의 서버 액션·RPC·확정된 변경 · F6 완료: #10으로 main 반영, 데모 모드 375px에서 홈·로그인·404 확인. `/create`·`/me`·`/admin`은 데모 모드에서 로그인으로 넘어가 실서버 로그인 후 확인 필요 · F3 완료: next/font 자체 호스팅·framer-motion 제거 · 타임라인 링크를 실제 주소로 교체·동기화, 번호가 붙은 와이어프레임 작업을 미등록 목록에서 정리 · 와이어프레임 반영: 확정된 변경·타임라인에 아직 없는 작업) · 2026-11-20 (C2 실기기 확인 결과, 저사양 폰 확인은 베타로: docs/qa-c2-device.md) · 2026-11-17 (C2 자동 성능 측정·개선, 실기기 체크리스트: docs/qa-c2-device.md · 타임라인에 없는 작업 추가: 데모 주인 화면 미리보기 · 작업 가이드 중복 제거: 제약·명령어는 CLAUDE.md, 환경변수는 spec.md 1.1로)
 > 🖼 화면 와이어프레임: [포스텍 트리 와이어프레임 (프론트엔드 화면)](https://claude.ai/artifact/48YKQPtn78agRoLiFXwSE5) — 화면별 데이터·액션은 spec.md 2.3
 > 📅 **기준은 [타임라인 (간트 차트)](https://claude.ai/artifact/LVz71ybViGJ7xw6Ga1mD1Y)** 입니다. 사람은 타임라인을 보고 일하고, 작업 추가·일정·완료 체크도 타임라인에서 합니다.
 > 이 문서의 작업 목록은 타임라인의 사본이라 **손으로 고치지 않습니다.** 타임라인을 바꾼 뒤 `node scripts/sync-plan.mjs <타임라인 HTML>`로 다시 만듭니다. 둘이 다르면 타임라인이 맞습니다.
@@ -64,7 +64,7 @@
 | `app/login/page.tsx` · `app/create` · `app/me` · `app/admin` | 로그인 / 트리 생성·이름 변경 / 내 페이지 / 관리자 | 서버 (+ 폼 컴포넌트는 클라이언트) |
 | `app/t/[slug]/page.tsx` | 트리 보기. 주인이고 공개 이후면 `getLetters`(UI 분기일 뿐, 권한은 RLS), 아니면 장식만. `?dday=N`(개발·데모만), `?added`, `?egg` | 서버 → `TreeView` |
 | `app/t/[slug]/write/page.tsx` | 장식 선택 + 편지 작성 (`WriteForm`) | 서버 → 클라이언트 |
-| `app/actions.ts` | `"use server"` 서버 액션: `saveMyTree`, `claimTree`, `adminCreateSpecialTree`, `adminIssueClaimCode`, `adminResolve`. 반환 타입 `FormState = { error?: string } \| undefined`, 성공 시 `redirect()` | 서버 |
+| `app/actions.ts` | `"use server"` 서버 액션: `saveMyTree`, `claimTree`(화면에서 안 씀), `adminCreateSpecialTree`, `adminIssueClaimCode`(화면에서 안 씀), `adminResolve`, `adminSetTreeOpen`, `adminIssueReadLink`, `toggleProfessorLike`, `saveTreeStyle`. 반환 타입 `FormState = { error?: string } \| undefined`, 성공 시 `redirect()` | 서버 |
 | `app/api/letters/route.ts` | `POST` 익명 편지 저장 (로그인 불필요, service role) | 서버 |
 | `app/auth/callback/route.ts` | OAuth `code` → 세션 교환 후 `next`로 이동 (`/`로 시작하는 경로만 허용, 기본 `/me`) | 서버 |
 | `app/auth/signout/route.ts` | `POST` 로그아웃 → `/` (303) | 서버 |
@@ -92,7 +92,7 @@
 - **`select('*')` 금지**: `trees`는 컬럼 단위 권한(`claim_code` 숨김)이라 `*`가 실패합니다. `TREE_COLUMNS` 상수를 씁니다. `letters`도 필요한 컬럼만 고릅니다 (`ip_hash`·`client_hash`는 절대 내보내지 않음).
 - **장식 목록은 RPC**: 방문자용 장식은 `rpc("get_ornaments", { p_tree_id })` — 본문·고백 여부를 뺀 `OrnamentRow`만 돌려줍니다. `letters`를 직접 조회해 장식을 만들지 않습니다.
 - **편지 본문**: `getLetters()`는 RLS가 "트리 주인 + `is_revealed()` + 숨김 아님"일 때만 행을 돌려주고, 그 외에는 빈 배열입니다. 앱 코드에서 날짜로 거르지 않습니다.
-- **기존 RPC**: `get_ornaments`, `get_stats`(트리·편지·고백·오늘 수), `report_letter`, `claim_tree(p_code)`→slug, `admin_set_claim_code`, `admin_resolve_report`, `admin_list_special_trees`, 헬퍼 `is_revealed()`·`is_admin()`. 관리자 함수는 함수 안에서 `is_admin()`을 확인합니다.
+- **기존 RPC**: `get_ornaments`, `get_stats`(트리·편지·고백·오늘 수), `report_letter`, `claim_tree(p_code)`→slug, `admin_set_claim_code`, `admin_resolve_report`, `admin_list_special_trees`, 헬퍼 `is_revealed()`·`is_admin()`. 교수님 열람 링크(0005): `admin_issue_read_key`, `check_read_key`, `get_letters_by_read_key` — `lib/data.ts`의 `getLettersByReadKey()`로만 부른다 (spec.md 4.6). 관리자 함수는 함수 안에서 `is_admin()`을 확인합니다.
 - **새 `security definer` 함수**를 만들면 `revoke execute … from public, anon, authenticated` 후 필요한 역할에만 `grant`합니다 (spec.md 5.3).
 - **DB 테이블**: `app_config`(단일 행, `reveal_at`), `profiles`(가입 시 트리거로 생성, `is_admin`은 사용자가 못 바꿈), `trees`(일반 유저 1인 1트리, slug `^[a-z0-9-]{4,40}$`), `letters`. 컬럼은 spec.md 5.3.
 
@@ -107,6 +107,7 @@
 | CI | 없음 | GitHub Actions: lint · typecheck · build + Postgres 서비스 컨테이너에서 `test-rls.sql` | **S13** |
 | 관측 | 없음 | Vercel Analytics, (선택) Sentry | **S15** |
 | 카카오톡 공유 | 링크 복사·Web Share | (선택) Kakao JS SDK, `lib/kakao.ts` | **C11** |
+| 교수님 편지 전달 | 없음 (트리 주인은 만든 관리자) | 관리자가 `/admin` 교수님 목록에서 비밀 열람 링크 발급 → 교수님은 `/t/<slug>?key=…`로 로그인 없이 12/25 0시부터 읽음. `0005`: `trees.read_key`, `admin_issue_read_key`·`check_read_key`·`get_letters_by_read_key`. `TreeView`에 `reader` prop (spec.md 4.6, 5.3) | **T9** |
 | 교수님 트리 | 관리자 생성 → 초대 코드 → 교수님이 `/me`에서 입력. 홈에 교수님 트리 목록 | 허락 대기로 생성 → 학생이 `/professors`에서 하트 → 관리자가 "트리 열기". 초대 코드 화면 제거(DB·함수는 유지). 홈은 `/professors` 카드 하나. `0003`: `trees.is_open`, `professor_likes`, `list_professors`·`toggle_professor_like`·`admin_set_tree_open`, 닫힌 트리는 `submit_letter()`·`getTreeBySlug()`에서 없는 트리 취급 (spec.md 4.6, 5.3) | **S20**, **S21**, **F7**, **F6** |
 | 내 트리 꾸미기 | 없음 (`theme`은 생성 시 `classic` 고정) | `/me/style`: `trees.tree_color` + `theme` 선택, `saveTreeStyle`, `TreeScene`에 `treeColor` prop (spec.md 4.7) | **D11**, **S20**, **S21**, **F8**, **C13** |
 | 화면 구성 | 프로토타입 화면 | 와이어프레임대로: 홈 위쪽 3분기, 로그인 오류·인앱 안내, `/create` 이름 바꾸기 후 `/me`, `/me` 링크 복사·공유, `/admin` 탭 3개, 편지 쓰기 2단계, 공통 상태(404·권한 없음·`loading.tsx`·알림) (spec.md 3장, 5.1) | **F6**, **C13**, **F1** |
@@ -476,7 +477,7 @@
     - findOrnament가 이미지 경로를 쓰도록 변경
     - 이모지 fallback 유지
   - 완료 기준: 40종 모두 표시
-- [ ] **C13** 편지 쓰기 2단계 화면·TreeScene treeColor prop · 11/22(일)–11/24(화)
+- [x] **C13** 편지 쓰기 2단계 화면·TreeScene treeColor prop · 11/22(일)–11/24(화)
   - 와이어프레임 반영 (2026-11-21 추가, 일정은 제안). WriteForm·TreeScene. 색 값은 D11 전까지 임시. spec.md 3장.
   - 할 일
     - 1단계 장식 선택 → 2단계 편지 작성
@@ -564,6 +565,22 @@
 ## 타임라인에 아직 없는 작업
 > 타임라인을 고칠 수 없는 사람·세션이 찾은 작업을 여기에 적고, 타임라인 편집 권한이 있는 사람이 번호를 붙여 옮깁니다. 옮긴 뒤에는 여기서 지웁니다.
 
+> **T9 완료 후보** — T9(교수님께 편지를 전하는 방법 결정)의 결정은 "비밀 열람 링크"(spec.md 3장 교수님 트리, 4.6, 6장 결정됨). 아래 세 작업은 그 결정의 구현이며 브랜치 `task/T9-professor-read-link`에서 코드는 끝났습니다. 타임라인에 번호(S·F·C)를 붙여 옮기고, 팀이 방법에 합의했으면 타임라인에서 T9를 완료 체크해 주세요.
+
+- [ ] **교수님 열람 링크 — DB·서버 (T9 완료 후보)** — 🛠 서버(민준 리뷰). spec.md 4.6 · 5.3
+  - [x] `supabase/migrations/0005_professor_read_link.sql`: `trees.read_key`(컬럼 권한 숨김), `admin_issue_read_key`·`check_read_key`·`get_letters_by_read_key`, `admin_list_special_trees`에 `read_key`
+  - [x] `scripts/test-rls.sql`: 공개 전 0건, 틀린·이전·빈·null 키 0건, 공개 후 맞는 키만(숨김 제외), 닫힌 트리 0건, 일반 유저·anon `read_key` 못 읽음·못 씀, 비관리자 발급 실패 — 빈 로컬 Postgres 16에서 통과
+  - [x] `lib/data.ts` `getLettersByReadKey()`·`AdminTreeRow.read_key`, `app/actions.ts` `adminIssueReadLink` (데모: `/t/prof-demo?key=demo`만)
+  - [ ] 👤 운영 DB에 `0005` 적용 (SQL Editor, **이 PR을 배포하기 전에** — 없으면 `?key=` 주소가 오류 화면, 링크 만들기 실패) 후 실서버에서 링크 발급·열람 확인. 0003을 다시 돌렸다면 0005도 다시 돌린다 (0003이 `admin_list_special_trees`를 0005 이전 모양으로 되돌림)
+  - [ ] 관측 도구(S15)를 붙일 때 `?key=`가 수집되지 않게
+- [ ] **교수님 열람 링크 — 관리자 화면 (T9 완료 후보)** — 🖥 프론트엔드(와장창프론트엔드 리뷰)
+  - [x] `/admin` 교수님 목록: "열람 링크 만들기 / 링크 다시 만들기"(확인 창) + `ReadLinkBox`(링크 보기·복사) + "다시 만들면 이전 링크는 못 써요" 안내
+  - [x] `/t/[slug]` page: `?key=` 분기, 키가 붙은 주소 `robots: noindex, nofollow`·`referrer: no-referrer`, OG url에 키 없음
+  - [ ] 👤 디자인 반영(D7) 때 관리자 카드 배치 확인
+- [ ] **교수님 열람 링크 — 열람 화면 (T9 완료 후보)** — 📱 클라이언트
+  - [x] `TreeView` `reader` prop: 공개 전 잠금·카운트다운, 공개 후 장식 눌러 편지(고백 라벨 포함), 신고·공유·주인 메뉴 없음, 0시 새로고침 대기 30초(주인과 같음)
+  - [ ] 👤 실기기·인앱 브라우저(카톡·메일 앱)에서 링크 열기 확인 (C1과 함께)
+
 - [ ] **트리 넘김(C3) 실기기 QA** — C1(인앱 브라우저)·C2(실기기) 할 일에 추가해 주세요. 규칙은 `spec.md` 5.1 "트리 넘김". C3는 데모 모드 375px 헤드리스 Chromium에서만 확인했습니다.
   - 준비: 데모 배포(또는 `npm run dev`)에서 `/t/demo?fill=60` — 장식 60개, 트리 4개. `&added=1`을 붙이면 편지를 막 달고 온 상태. (`?fill=`은 데모 모드에서만 동작)
   - 확인할 환경: 인스타 인앱(iOS·Android), 카톡 인앱(iOS·Android), iOS Safari, Android Chrome
@@ -598,3 +615,14 @@
   - 추가: 기존 교수님 트리 `is_open = false`로 닫기, 칠판 테마 check 제약 `trees_chalkboard_professor_only`(일반 트리 금지)
   - `test-rls.sql`에 추가: 일반 트리 주인이 `theme = 'chalkboard'`로 직접 update 실패, 주인이 `theme`·`tree_color` 바꾸기 성공
   - 고친 뒤 `sync-plan.mjs`로 다시 만들고 이 항목을 지운다
+
+- [ ] **T9 완료 체크 · 운영 작업 2개 추가 (2026-11-21)** — 👥 타임라인 편집 권한이 있는 사람. 결정 내용은 `spec.md` 3장 "교수님 트리"·4.6·6장 "결정됨". 구현 작업 3개는 위 "T9 완료 후보" 항목. 타임라인을 고친 뒤 `sync-plan.mjs`로 다시 만들고 이 항목을 지운다.
+  - **T9 완료 체크** (결정: 로그인 없는 비밀 열람 링크. 초대 코드·특별 트리는 쓰지 않음)
+  - 새 운영 작업
+    - 👥 교수님께 열람 링크 전달 · 12월 초 (교수님께만 직접, 잘못 보내면 다시 만들어 이전 링크 무효화)
+    - 👥 12/25 교수님 열람 확인 · 12/25 (링크로 편지가 보이는지)
+
+- [ ] **데모 모드에서 "트리에 달기"가 404 (PR #14 리뷰에서 발견)** — 🛠 서버(민준). 타임라인에 번호를 붙여 옮겨 주세요. 약 5분.
+  - 위치: `app/api/letters/route.ts` — 트리 id 형식 검사 `UUID.test(treeId)`(55줄)가 데모 분기 `if (!isConfigured)`(62줄)보다 먼저 와서, 데모 트리 id `"demo"`·`"prof-demo"`가 404로 거절된다. S12(#9)부터.
+  - 고치기: 데모 분기를 id 검사보다 앞으로 옮기거나, 데모 모드에서는 데모 트리 id를 허용한다. 실서버(`isConfigured`)의 검사 순서는 그대로.
+  - 확인: 데모 모드 `/t/demo/write`에서 "트리에 달기" → `/t/demo?added=1`로 돌아오는지
