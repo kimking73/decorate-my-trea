@@ -476,7 +476,7 @@
     - findOrnament가 이미지 경로를 쓰도록 변경
     - 이모지 fallback 유지
   - 완료 기준: 40종 모두 표시
-- [ ] **C13** 편지 쓰기 2단계 화면·TreeScene treeColor prop · 11/22(일)–11/24(화)
+- [x] **C13** 편지 쓰기 2단계 화면·TreeScene treeColor prop · 11/22(일)–11/24(화)
   - 와이어프레임 반영 (2026-11-21 추가, 일정은 제안). WriteForm·TreeScene. 색 값은 D11 전까지 임시. spec.md 3장.
   - 할 일
     - 1단계 장식 선택 → 2단계 편지 작성
