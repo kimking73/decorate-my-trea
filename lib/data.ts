@@ -1,5 +1,7 @@
 import "server-only";
 import { cache } from "react";
+import { cookies } from "next/headers";
+import type { User } from "@supabase/supabase-js";
 import { createClient, createPublicClient, isConfigured } from "@/lib/supabase/server";
 import { REVEAL_AT } from "@/lib/constants";
 
@@ -79,18 +81,65 @@ function demoOrnaments(treeId: string): OrnamentRow[] {
 
 export const demoMode = !isConfigured;
 
+// ---------- 데모 로그인 (spec.md 4.2, 데모 모드 전용) ----------
+// 와이어프레임 전체 화면을 데모 주소에서 보여 주기 위한 가짜 로그인. 이 브라우저 쿠키에만 저장한다.
+// Supabase가 설정된 서버(isConfigured)에서는 읽지도 쓰지도 않는다.
+export const DEMO_SESSION_COOKIE = "demo_session";
+export const DEMO_USER_ID = "demo-user";
+export type DemoSession = { tree?: { name: string; color: string | null; theme: string }; likes: string[] };
+
+export async function readDemoSession(): Promise<DemoSession | null> {
+  if (isConfigured) return null;
+  const raw = (await cookies()).get(DEMO_SESSION_COOKIE)?.value;
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw);
+    const t = v?.tree;
+    return {
+      tree: t && typeof t.name === "string"
+        ? { name: t.name.slice(0, 20), color: typeof t.color === "string" ? t.color : null, theme: typeof t.theme === "string" ? t.theme : "classic" }
+        : undefined,
+      likes: Array.isArray(v?.likes) ? v.likes.filter((x: unknown): x is string => typeof x === "string").slice(0, 20) : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+// 데모 로그인 후 만든 "내 트리"는 데모 트리(/t/demo)를 이 브라우저에서만 내 것으로 보여 준다
+function demoMyTree(s: DemoSession): Tree | null {
+  if (!s.tree) return null;
+  return {
+    ...DEMO_TREES[0], owner_id: DEMO_USER_ID, owner_name: s.tree.name, title: `${s.tree.name}님의 트리`,
+    theme: s.tree.theme, tree_color: s.tree.color,
+  };
+}
+
+// 교수님 목록 (데모). prof-demo만 트리가 열려 있고 나머지는 허락 대기라 /t/<slug>는 "없는 트리"
+const DEMO_PROFESSORS: (Omit<ProfessorRow, "liked_by_me"> & { letter_count: number })[] = [
+  { id: "demo-prof", slug: "prof-demo", owner_name: "OO 교수님", department: "cse", is_open: true, like_count: 128, letter_count: 5 },
+  { id: "demo-prof-2", slug: "prof-demo-2", owner_name: "이OO 교수님", department: "phys", is_open: false, like_count: 97, letter_count: 0 },
+  { id: "demo-prof-3", slug: "prof-demo-3", owner_name: "박OO 교수님", department: "chem", is_open: false, like_count: 64, letter_count: 0 },
+  { id: "demo-prof-4", slug: "prof-demo-4", owner_name: "최OO 교수님", department: "math", is_open: false, like_count: 41, letter_count: 0 },
+  { id: "demo-prof-5", slug: "prof-demo-5", owner_name: "정OO 교수님", department: "me", is_open: false, like_count: 23, letter_count: 0 },
+];
+export function demoProfessorBaseCount(id: string): number | null {
+  return DEMO_PROFESSORS.find((p) => p.id === id)?.like_count ?? null;
+}
+
 // ---------- 조회 ----------
 // getUser·getTreeBySlug는 React cache()로 한 요청 안에서 한 번만 조회한다
 // (generateMetadata와 페이지 본문, getProfile이 같은 결과를 함께 씀). 요청이 끝나면 버려진다.
-export const getUser = cache(async () => {
-  if (!isConfigured) return null;
+export const getUser = cache(async (): Promise<User | null> => {
+  if (!isConfigured) return (await readDemoSession()) ? ({ id: DEMO_USER_ID } as User) : null;
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   return data.user;
 });
 
 export async function getProfile() {
-  if (!isConfigured) return null;
+  // 데모 로그인은 관리자 화면까지 보이도록 관리자로 취급한다 (저장은 되지 않음, spec.md 4.2)
+  if (!isConfigured) return (await readDemoSession()) ? { id: DEMO_USER_ID, display_name: null, is_admin: true } : null;
   const user = await getUser();
   if (!user) return null;
   const supabase = await createClient();
@@ -99,13 +148,20 @@ export async function getProfile() {
 }
 
 export const getTreeBySlug = cache(async (slug: string): Promise<Tree | null> => {
-  if (!isConfigured) return DEMO_TREES.find((t) => t.slug === slug) ?? null;
+  if (!isConfigured) {
+    const s = slug === "demo" ? await readDemoSession() : null;
+    return (s && demoMyTree(s)) || (DEMO_TREES.find((t) => t.slug === slug) ?? null);
+  }
   const supabase = await createClient();
   const { data } = await supabase.from("trees").select(TREE_COLUMNS).eq("slug", slug).maybeSingle();
   return data as Tree | null;
 });
 
 export async function getMyTree(userId: string): Promise<Tree | null> {
+  if (!isConfigured) {
+    const s = userId === DEMO_USER_ID ? await readDemoSession() : null;
+    return s ? demoMyTree(s) : null;
+  }
   const supabase = await createClient();
   const { data } = await supabase
     .from("trees").select(TREE_COLUMNS).eq("owner_id", userId).eq("kind", "user").maybeSingle();
@@ -176,4 +232,65 @@ export async function getLetters(treeId: string) {
     .eq("tree_id", treeId)
     .order("created_at", { ascending: true });
   return (data ?? []) as (OrnamentRow & { content: string; is_confession: boolean })[];
+}
+
+// ---------- 교수님 목록·관리자 (spec.md 2.3, 4.6) ----------
+// 오류 계약(spec.md 2.3): 없으면 빈 배열, 조회 실패는 throw → app/error.tsx
+export type ProfessorRow = {
+  id: string; slug: string; owner_name: string; department: string | null;
+  is_open: boolean; like_count: number; liked_by_me: boolean;
+};
+
+/** 관심순 교수님 목록. liked_by_me는 로그인했을 때만 의미가 있다 (누가 눌렀는지는 돌려주지 않음) */
+export async function getProfessors(): Promise<ProfessorRow[]> {
+  if (!isConfigured) {
+    const likes = (await readDemoSession())?.likes ?? [];
+    return DEMO_PROFESSORS
+      .map((p) => ({
+        id: p.id, slug: p.slug, owner_name: p.owner_name, department: p.department, is_open: p.is_open,
+        like_count: p.like_count + (likes.includes(p.id) ? 1 : 0), liked_by_me: likes.includes(p.id),
+      }))
+      .sort((a, b) => b.like_count - a.like_count || a.owner_name.localeCompare(b.owner_name, "ko"));
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_professors");
+  if (error) throw error;
+  return ((data ?? []) as ProfessorRow[]).map((p) => ({ ...p, like_count: Number(p.like_count), liked_by_me: !!p.liked_by_me }));
+}
+
+export type AdminTreeRow = {
+  id: string; slug: string; title: string; owner_name: string; kind: string;
+  letter_count: number; department: string | null; is_open: boolean; like_count: number;
+};
+
+/** /admin 교수님 목록 탭 (관리자만, DB admin_list_special_trees가 is_admin() 확인) */
+export async function getAdminSpecialTrees(): Promise<AdminTreeRow[]> {
+  if (!isConfigured) {
+    const likes = (await readDemoSession())?.likes ?? [];
+    return DEMO_PROFESSORS.map((p) => ({
+      ...p, title: `${p.owner_name}께 드리는 트리`, kind: "professor", like_count: p.like_count + (likes.includes(p.id) ? 1 : 0),
+    }));
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_list_special_trees");
+  if (error) throw error;
+  return ((data ?? []) as AdminTreeRow[]).map((t) => ({ ...t, letter_count: Number(t.letter_count), like_count: Number(t.like_count ?? 0) }));
+}
+
+export type ReportedLetter = { id: string; content: string; created_at: string; tree_title: string | null };
+
+/** 신고된 편지 (관리자만, RLS) */
+export async function getReportedLetters(): Promise<ReportedLetter[]> {
+  if (!isConfigured) {
+    if (!(await readDemoSession())) return [];
+    return [
+      { id: "demo-report-1", content: "(데모) 신고된 편지 예시예요. 복구하거나 삭제할 수 있어요.", created_at: new Date().toISOString(), tree_title: "포스테키안님의 트리" },
+    ];
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("letters").select("id, content, created_at, trees(title)").eq("reported", true).order("created_at");
+  if (error) throw error;
+  return ((data ?? []) as unknown as { id: string; content: string; created_at: string; trees: { title: string } | null }[])
+    .map((l) => ({ id: l.id, content: l.content, created_at: l.created_at, tree_title: l.trees?.title ?? null }));
 }

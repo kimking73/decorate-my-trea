@@ -547,6 +547,13 @@
 ## 타임라인에 아직 없는 작업
 > 타임라인을 고칠 수 없는 사람·세션이 찾은 작업을 여기에 적고, 타임라인 편집 권한이 있는 사람이 번호를 붙여 옮깁니다. 옮긴 뒤에는 여기서 지웁니다.
 
+- [x] **F9 와이어프레임 전체를 데모로 (데모 로그인)** — 🖥 프론트엔드 · 2026-11-21. 타임라인에 F9로 추가하고 완료 체크해 주세요. 규칙은 `spec.md` 4.2 "데모 로그인", 2.3 데모 분기, 4.7 임시 값.
+  - 데모 주소에서 와이어프레임 화면을 모두 보여 주기 위해, 데모 모드에서만 가짜 로그인(`demo_session` 쿠키)으로 로그인 후 홈·`/create`·`/me`·`/me/style`·`/professors` 하트·`/admin` 3개 탭을 볼 수 있게 했다.
+  - 함께 들어간 것: `/professors`(F7 화면), `/me/style`(F8 화면, 트리 색 임시 값 `TREE_COLORS`), `TreeScene` `treeColor` prop(C13 일부), 관리자 교수님 목록의 관심 수·허락 상태·거르기·"허락 받음 · 트리 열기"
+  - 서버 파일도 고쳤다 (`lib/data.ts`·`app/actions.ts` — 민준 리뷰 필요): 데모 분기, 새 함수 `getProfessors`·`getAdminSpecialTrees`·`getReportedLetters`·`toggleProfessorLike`·`saveTreeStyle`·`adminSetTreeOpen`, 이름 바꾸기 후 `/me?toast=renamed`. 실서버 분기는 아직 확인하지 않았다 → S21에서 확인
+  - 클라이언트 파일(`TreeScene`·`TreeView`, 람쥐썬더 리뷰 필요): `treeColor` prop, 데모 로그인한 주인의 "방문자 화면으로 보기"(`?owner=0`)
+  - F7·F8은 데모 375px 완료 기준을 만족하지만 선행 S21(실서버 확인)이 남아 체크하지 않았다
+
 - [ ] **트리 넘김(C3) 실기기 QA** — C1(인앱 브라우저)·C2(실기기) 할 일에 추가해 주세요. 규칙은 `spec.md` 5.1 "트리 넘김". C3는 데모 모드 375px 헤드리스 Chromium에서만 확인했습니다.
   - 준비: 데모 배포(또는 `npm run dev`)에서 `/t/demo?fill=60` — 장식 60개, 트리 4개. `&added=1`을 붙이면 편지를 막 달고 온 상태. (`?fill=`은 데모 모드에서만 동작)
   - 확인할 환경: 인스타 인앱(iOS·Android), 카톡 인앱(iOS·Android), iOS Safari, Android Chrome

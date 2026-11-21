@@ -3,14 +3,12 @@ import { redirect } from "next/navigation";
 import ShareLinkButtons from "@/components/ShareLinkButtons";
 import Toast from "@/components/Toast";
 import TreeScene from "@/components/TreeScene";
-import { getMyTree, getOrnaments, getProfile, getRevealAt, getUser } from "@/lib/data";
-import { SITE_URL } from "@/lib/constants";
+import { demoSignOut } from "@/app/actions";
+import { demoMode, getMyTree, getOrnaments, getProfile, getRevealAt, getUser } from "@/lib/data";
+import { SITE_URL, THEMES, type ThemeId } from "@/lib/constants";
 import { getSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
-
-// F8에서 app/me/style/page.tsx를 만들면 true로 바꾼다 (그 전에는 404라 버튼을 숨긴다)
-const STYLE_PAGE_READY = false;
 
 // 서버 액션이 성공 후 /me?toast=… 로 보내면 화면 아래 알림을 띄운다 (spec.md 2.3)
 const TOASTS: Record<string, string> = {
@@ -38,9 +36,9 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
         {tree ? (
           <>
             <section className="card flex flex-col gap-3.5 p-4">
-              <div className="overflow-hidden rounded-xl" style={{ background: "linear-gradient(#0b2036, #1c4566)" }}>
+              <div className="overflow-hidden rounded-xl" style={{ background: (THEMES[tree.theme as ThemeId] ?? THEMES.classic).bg }}>
                 <div className="pointer-events-none mx-auto max-w-[220px]" aria-hidden>
-                  <TreeScene theme={tree.theme} ornaments={ornaments.slice(0, 18)} season={season} lockedIcons />
+                  <TreeScene theme={tree.theme} treeColor={tree.tree_color} ornaments={ornaments.slice(0, 18)} season={season} lockedIcons />
                 </div>
               </div>
               <div>
@@ -53,10 +51,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
               <Link href={`/t/${tree.slug}`} className="btn btn-primary w-full text-lg">🎄 내 트리 보러 가기</Link>
               <ShareLinkButtons url={shareUrl} title={tree.title} variant="pair" />
               <p className="select-all break-all rounded-lg bg-slate-100 px-3 py-2.5 text-sm text-slate-600">{shareUrl}</p>
-              <div className={`grid gap-2 ${STYLE_PAGE_READY ? "grid-cols-2" : "grid-cols-1"}`}>
-                {STYLE_PAGE_READY && (
-                  <Link href="/me/style" className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">색·테마 바꾸기</Link>
-                )}
+              <div className="grid grid-cols-2 gap-2">
+                <Link href="/me/style" className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">색·테마 바꾸기</Link>
                 <Link href="/create" className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">이름 바꾸기</Link>
               </div>
             </section>
@@ -82,7 +78,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
       </div>
 
       <footer className="flex justify-center border-t border-white/15 p-4">
-        <form action="/auth/signout" method="post">
+        <form {...(demoMode ? { action: demoSignOut } : { action: "/auth/signout", method: "post" })}>
           <button className="min-h-11 px-4 text-sm underline opacity-80">로그아웃</button>
         </form>
       </footer>

@@ -12,7 +12,7 @@ import { TOTAL_BULBS } from "@/lib/season";
 import { useRevealRefresh } from "@/components/useRevealRefresh";
 
 type Props = {
-  tree: { id: string; slug: string; title: string; owner_name: string; theme: string; kind: string; description: string | null };
+  tree: { id: string; slug: string; title: string; owner_name: string; theme: string; tree_color?: string | null; kind: string; description: string | null };
   ornaments: SceneOrnament[];
   letters: Letter[] | null;
   isOwner: boolean;
@@ -41,11 +41,10 @@ export default function TreeView(p: Props) {
   const search = useSyncExternalStore(noSubscribe, () => window.location.search, () => "");
   const fill = useDemoFill(p.demo, search);
   // 데모 모드 전용: 주인 화면 ↔ 방문자 화면 전환 링크 (?dday·?fill 등 나머지 쿼리는 유지).
-  // 데모에는 로그인이 없으므로 demo && isOwner 는 `?owner=1` 미리보기뿐이다 (실서버에서는 서버가 무시).
+  // demo && isOwner 는 `?owner=1` 미리보기 또는 데모 로그인한 주인이다. 방문자 화면으로는 `?owner=0` (실서버에서는 서버가 무시).
   const ownerToggleHref = useMemo(() => {
     const q = new URLSearchParams(search);
-    if (p.isOwner) q.delete("owner");
-    else q.set("owner", "1");
+    q.set("owner", p.isOwner ? "0" : "1");
     const qs = q.toString();
     return `/t/${p.tree.slug}${qs ? `?${qs}` : ""}`;
   }, [search, p.isOwner, p.tree.slug]);
@@ -178,6 +177,7 @@ export default function TreeView(p: Props) {
           >
             <TreeScene
               theme={p.tree.theme}
+              treeColor={p.tree.tree_color}
               ornaments={ornaments.slice(page * SLOTS_PER_PAGE, (page + 1) * SLOTS_PER_PAGE)}
               onOrnamentClick={onOrnament}
               season={p.season}

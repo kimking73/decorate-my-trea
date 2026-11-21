@@ -97,6 +97,23 @@ export const THEMES: Record<ThemeId, { name: string; bg: string; tree: [string, 
   chalkboard: { name: "칠판 (교수님)", bg: "linear-gradient(#20372b, #2f4d3c)", tree: ["#e9efe9", "#f3f6f3", "#ffffff"], text: "#f3f6f3" },
 };
 
+// 일반 트리가 고를 수 있는 배경 테마 (칠판은 교수님 전용, spec.md 4.7)
+export const USER_THEME_IDS: ThemeId[] = ["classic", "snow", "pink", "night", "postech"];
+
+// 트리 색 (trees.tree_color, spec.md 4.7). 와이어프레임 임시 값 — D11에서 색만 바꾸고 id는 추가만 한다 (DB에 저장됨)
+export type TreeColorId = "green" | "red" | "snow" | "gold" | "pink" | "navy";
+export const TREE_COLORS: Record<TreeColorId, { name: string; tree: [string, string, string] }> = {
+  green: { name: "초록", tree: ["#1f7a45", "#23904f", "#2aa35a"] },
+  red: { name: "포스텍 레드", tree: ["#a50d26", "#c8102e", "#d93a52"] },
+  snow: { name: "눈꽃", tree: ["#c9d8e2", "#dfe8ee", "#eef3f6"] },
+  gold: { name: "금색", tree: ["#a8861c", "#c9a227", "#dcb94a"] },
+  pink: { name: "분홍", tree: ["#c4607f", "#d97b9a", "#e898b2"] },
+  navy: { name: "남색", tree: ["#1f2f52", "#2b3f6b", "#3b5285"] },
+};
+export function isTreeColor(id: string | null | undefined): id is TreeColorId {
+  return !!id && id in TREE_COLORS;
+}
+
 // 숨은 키워드 이스터에그
 export const KEYWORD_EGGS: { words: string[]; effect: "confetti" | "cry" | "aplus" | "heart"; message: string }[] = [
   { words: ["종강"], effect: "confetti", message: "🎉 종강 축하해요! 폭죽 발사!" },

@@ -1,6 +1,6 @@
 # 포스텍 트리 — 제품 스펙
 
-> 마지막 갱신: 2026-11-21 (F4 서버 경계 점검: 2.3 화면별 실제 호출·오류 계약, 5.1 일시적 오류 화면, 2.1 `app/error.tsx` · 7장 타임라인 링크를 실제 주소로 교체 · F6 화면 구조 정리: 2.1에 프론트엔드 새 컴포넌트 · 와이어프레임 반영: 교수님 관심(하트)·허락 흐름, 내 트리 색·테마, 하트·허락 4.6, 내 트리 꾸미기 4.7, 화면별 데이터·액션 2.3, 화면 5.1, DB 5.3, 미정 6장) · 2026-11-17 (애니메이션 성능 규칙·동작 줄이기(C2): 4.2, 2.1 · 데모 전용 주인 화면 미리보기 `?owner=1`: 4.2 · 장식 페이지 넘김(C3): 5.1 · 12/25 0시 동시 접속 대비: 4.5, 6장 · 서버 담당: 2장 · 문서 간 중복 제거·환경변수 표 통합: 1.1, 7장 · QA용 데모 배포·공유 주소 기본값: 1.1 · plan.md 기술 스택 작업 가이드 규칙: 7장 · 작업 관리 규칙 추가: 7장 · 프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3~6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
+> 마지막 갱신: 2026-11-21 (F9 와이어프레임 전체를 데모로: 4.2 데모 로그인, 2.2 `treeColor`, 2.3 데모 분기·새 함수 이름, 4.7 임시 트리 색 · F4 서버 경계 점검: 2.3 화면별 실제 호출·오류 계약, 5.1 일시적 오류 화면, 2.1 `app/error.tsx` · 7장 타임라인 링크를 실제 주소로 교체 · F6 화면 구조 정리: 2.1에 프론트엔드 새 컴포넌트 · 와이어프레임 반영: 교수님 관심(하트)·허락 흐름, 내 트리 색·테마, 하트·허락 4.6, 내 트리 꾸미기 4.7, 화면별 데이터·액션 2.3, 화면 5.1, DB 5.3, 미정 6장) · 2026-11-17 (애니메이션 성능 규칙·동작 줄이기(C2): 4.2, 2.1 · 데모 전용 주인 화면 미리보기 `?owner=1`: 4.2 · 장식 페이지 넘김(C3): 5.1 · 12/25 0시 동시 접속 대비: 4.5, 6장 · 서버 담당: 2장 · 문서 간 중복 제거·환경변수 표 통합: 1.1, 7장 · QA용 데모 배포·공유 주소 기본값: 1.1 · plan.md 기술 스택 작업 가이드 규칙: 7장 · 작업 관리 규칙 추가: 7장 · 프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3~6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
 
 ## 1. 개요
 - **목표**: POSTECH 학생들이 인스타그램에 자기 트리 링크를 올리고, 친구들이 **익명 편지**를 장식으로 달아주는 연말 이벤트. 편지는 **12/25 00:00 KST**에 열린다.
@@ -87,7 +87,7 @@
 ### 2.2 팀 간 계약 (바꾸려면 이 문서를 먼저 수정하고 상대에게 공유)
 1. **데이터 타입**: `lib/data.ts`의 `Tree`, `OrnamentRow`, `Stats`
 2. **컴포넌트 props**: `TreeScene` (`theme`, `ornaments`, `season`, `onOrnamentClick`, `starMode`, `crying`, `lockedIcons`), `TreeView` (`tree`, `ornaments`, `letters`, `isOwner`, `isLoggedIn`, `season`, `revealAt`, `shareUrl`, `justAdded`, `egg`, `demo`)
-   - **추가 예정**: `TreeScene`에 `treeColor?: string` (트리 색 id, 없으면 `theme` 기본색). 홈·`/create`·`/me/style` 미리보기도 `TreeScene`을 재사용한다 (4.7)
+   - `TreeScene`에 `treeColor?: string | null` (트리 색 id, 없거나 모르는 id면 `theme` 기본색. F9에서 추가, `TreeView`는 `tree.tree_color`를 넘긴다). 홈·`/create`·`/me/style` 미리보기도 `TreeScene`을 재사용한다 (4.7)
 3. **API**: 아래 5장 `POST /api/letters`
 4. **장식 ID**: `lib/constants.ts`의 장식 `id`는 DB `letters.ornament_type`에 저장된다. **이미 쓰인 id는 바꾸거나 지우지 않는다** (아이콘 이미지만 교체). 트리 색·배경 테마 id(`trees.tree_color`, `trees.theme`)도 같은 규칙이다.
 5. **서버 액션·조회 함수** (프론트엔드 ↔ 서버): `app/actions.ts`의 함수 이름·인자·반환값, `lib/data.ts`의 조회 함수 이름·반환 타입. 화면별 목록은 2.3
@@ -112,6 +112,7 @@
 - **조회 함수**: 없으면 `null`·`[]`, **조회 실패(네트워크·DB 오류)는 throw** → 페이지는 `app/error.tsx`("잠시 문제가 생겼어요")를 보여 준다. 지금은 `getTreeBySlug`·`getMyTree`·`getOrnaments`·`getProfile`이 실패도 `null`·`[]`로 돌려줘서, 장애(특히 12/25 0시) 때 "트리를 찾을 수 없어요"·빈 트리·"아직 트리가 없어요"로 잘못 보인다.
 - 예외: `getStats()`·`getRevealAt()`은 지금처럼 기본값으로 대신한다 (홈은 숫자가 틀려도 떠야 한다).
 - **서버 액션**: 실패하면 `{ error: "사용자에게 보일 문구" }`. DB 오류 메시지를 그대로 넣지 않는다 (지금 `adminCreateSpecialTree`가 `생성 실패: ${error.message}`). 폼으로 부르는 관리자 액션(`adminResolve`, 새 `adminSetTreeOpen`)도 `FormState`를 돌려줘서 실패를 알릴 수 있게 한다.
+- **데모 분기 (F9)**: 새 조회 함수 `getProfessors()`, `getAdminSpecialTrees()`(교수님 목록 탭, `admin_list_special_trees`), `getReportedLetters()`와 새 서버 액션 `toggleProfessorLike`, `saveTreeStyle`, `adminSetTreeOpen`은 데모 모드에서 고정 데이터와 데모 로그인 쿠키(4.2)로 동작한다. 실서버 분기는 이 표의 계약대로 RPC·update를 부르게 만들어 두지만, 실서버 확인과 `adminUpdateSpecialTree`·`getTreeBySlug`의 허락 대기 처리는 S21에서 한다.
 - 화면에서 쓰지 않는 함수: `getOwnedSpecialTrees()`, `getSpecialTrees()`, `claimTree`, `adminIssueClaimCode` — 지우지 않고 남긴다 (6장).
 
 - `ProfessorRow = { id, slug, owner_name, department, is_open, like_count, liked_by_me }` — `liked_by_me`는 로그인했을 때만 의미가 있고, 누가 눌렀는지는 돌려주지 않는다.
@@ -167,6 +168,10 @@
 
 - 개발/데모 모드에서 `?dday=N`으로 미리보기 (프로덕션에선 무시, 편지 권한과 무관)
 - **데모 모드에서만** `/t/<slug>?owner=1`로 주인 화면 미리보기 (공유 버튼·스토리용 이미지 저장·"내 페이지"). 인앱 브라우저 QA(C1)용이며 `?dday=N`과 함께 쓸 수 있다. 기준은 `NODE_ENV`가 아니라 `demoMode`(Supabase 환경변수 없음)라서 Supabase가 설정된 서버에서는 무시된다. 화면만 주인용으로 그리고 편지 본문 권한(RLS)과는 무관하다. `?owner=1&dday=0`이면 장식을 눌러 가짜 데모 편지(고백 편지 1통 포함)를 열 수 있다 — 데모 `getLetters()`가 돌려주는 고정 문구이며 DB와 무관하다. 데모 화면에는 "주인 화면으로 보기" ↔ "방문자 화면으로 보기" 전환 링크와 "데모: 주인 화면 미리보기" 표시가 나온다.
+- **데모 로그인 (F9, 데모 모드에서만)** — 와이어프레임 전체 화면을 데모 주소에서 보여 주기 위한 가짜 로그인. `/login`의 카카오·구글 버튼이 실제 OAuth 대신 이 브라우저의 쿠키(`demo_session`)에 로그인 상태를 저장한다. 쿠키가 있으면 `getUser()`·`getProfile()`(관리자로 취급)·`getMyTree()`가 데모 값을 돌려줘 로그인 후 홈·`/create`·`/me`·`/me/style`·`/admin`·`/professors` 하트를 볼 수 있다.
+  - 처음에는 트리가 없다. `/create`에서 이름을 적으면 데모 트리(`/t/demo`)가 **이 브라우저에서만** 내 트리가 된다 (이름·색·테마·하트는 쿠키에만 저장. 다른 사람에게는 원래 데모 트리). 로그아웃하면 쿠키를 지운다.
+  - 관리자 화면의 만들기·허락·신고 처리는 데모에서 저장되지 않고 "데모라 저장되지 않아요"로 알린다.
+  - `demoMode`가 아니면(Supabase 설정됨) 이 쿠키를 읽지도 쓰지도 않는다. 편지 본문 권한(RLS)과는 무관하다.
 
 **애니메이션 성능 규칙 (C2)** — 저사양 폰 기준. 측정값과 실기기 체크리스트는 [`docs/qa-c2-device.md`](./docs/qa-c2-device.md).
 - 계속 도는 애니메이션은 `transform`·`opacity`만 움직인다. `filter`·색(`color`, `fill`)·그림자를 무한 애니메이션하지 않는다 (매 프레임 메인 스레드에서 다시 그린다). 색이 바뀌어야 하면 색이 다른 복사본을 겹쳐 `opacity`로 바꾼다 (무지개 전구, 빛나는 별).
@@ -215,6 +220,7 @@
 - **트리 색**(`trees.tree_color`)과 **배경 테마**(`trees.theme`)를 따로 고른다. 와이어프레임의 임시 값: 트리 색 초록·포스텍 레드·눈꽃·금색·분홍·남색, 배경 밤하늘·눈 오는 날·벽난로·포스텍 캠퍼스. 실제 id·색 값은 디자인 확정(D2) 후 `lib/constants.ts`에 넣는다.
 - 칠판 테마(`chalkboard`)는 교수님 트리 전용이라 일반 트리 선택지에 없다. **DB에서 강제**한다: 주인은 `grant update`로 `trees.theme`를 직접 바꿀 수 있으므로, 서버 액션 검사만으로는 막을 수 없다. `0003`에 check 제약 `kind <> 'user' or theme <> 'chalkboard'`를 넣는다 (5.3).
 - 저장하면 친구가 링크로 들어왔을 때 그 색과 테마로 보인다. 장식은 그대로다.
+- **임시 값 (F9, D11 전까지)**: 트리 색은 `lib/constants.ts`의 `TREE_COLORS`(`green`·`red`·`snow`·`gold`·`pink`·`navy`, 와이어프레임 색). 배경 테마는 새 id를 만들지 않고 기존 `THEMES`에서 칠판을 뺀 5개를 쓴다 (와이어프레임의 밤하늘·벽난로 등은 D11에서 정한다). id는 DB에 저장되므로 D11에서는 값만 바꾸고 id는 추가만 한다.
 
 ## 5. 인터페이스
 

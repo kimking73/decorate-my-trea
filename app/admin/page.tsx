@@ -2,14 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminCreateForm from "@/components/AdminCreateForm";
 import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
-import { adminResolve } from "@/app/actions";
-import { getProfile, getUser } from "@/lib/data";
-import { createClient } from "@/lib/supabase/server";
+import Toast from "@/components/Toast";
+import { adminResolve, adminSetTreeOpen } from "@/app/actions";
+import { DEPARTMENTS } from "@/lib/constants";
+import { getAdminSpecialTrees, getProfile, getReportedLetters, getUser } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
-
-type SpecialRow = { id: string; slug: string; title: string; owner_name: string; kind: string; letter_count: number };
-type ReportRow = { id: string; content: string; created_at: string; trees: { title: string } | null };
 
 const TABS = [
   { id: "make", label: "교수님 트리 만들기" },
@@ -18,7 +16,22 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+const FILTERS = [
+  { id: "all", label: "전체" },
+  { id: "wait", label: "허락 대기" },
+  { id: "open", label: "트리 열림" },
+] as const;
+type FilterId = (typeof FILTERS)[number]["id"];
+
+// 액션이 /admin?toast=… 로 보내면 화면 아래 알림 (spec.md 5.1)
+const TOASTS: Record<string, string> = {
+  opened: "트리를 열었어요",
+  closed: "트리를 닫았어요",
+  failed: "저장하지 못했어요. 잠시 후 다시 시도해 주세요.",
+  demo: "데모라 저장되지 않아요",
+};
+
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; toast?: string }> }) {
   const user = await getUser();
   if (!user) redirect("/login?next=/admin");
   const profile = await getProfile();
@@ -35,17 +48,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     );
   }
 
-  const { tab: rawTab } = await searchParams;
+  const { tab: rawTab, filter: rawFilter, toast } = await searchParams;
   const tab: TabId = TABS.some((t) => t.id === rawTab) ? (rawTab as TabId) : "make";
+  const filter: FilterId = FILTERS.some((f) => f.id === rawFilter) ? (rawFilter as FilterId) : "all";
 
-  // TODO(서버): 신고 목록은 lib/data.ts의 getReportedLetters()로 옮긴다 (spec.md 2.3). 탭 이름에 건수가 보여 늘 조회한다
-  const supabase = await createClient();
-  const [{ data: reported }, { data: trees }] = await Promise.all([
-    supabase.from("letters").select("id, content, created_at, trees(title)").eq("reported", true).order("created_at"),
-    tab === "list" ? supabase.rpc("admin_list_special_trees") : Promise.resolve({ data: null }),
+  // 신고 건수는 탭 이름에 보여 늘 조회한다
+  const [reports, trees] = await Promise.all([
+    getReportedLetters(),
+    tab === "list" ? getAdminSpecialTrees() : Promise.resolve([]),
   ]);
-  const reports = (reported ?? []) as unknown as ReportRow[];
-  const professors = ((trees ?? []) as SpecialRow[]).filter((t) => t.kind === "professor");
+  const professors = trees
+    .filter((t) => t.kind === "professor" && (filter === "all" || (filter === "open") === t.is_open))
+    .sort((a, b) => b.like_count - a.like_count);
 
   return (
     <main className="mx-auto min-h-dvh max-w-md">
@@ -77,16 +91,62 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
         {tab === "list" && (
           <section aria-label="교수님 목록" className="flex flex-col gap-2.5">
-            <h2 className="font-display text-xl">교수님 목록</h2>
-            {/* TODO(서버 0003 이후): 관심 수·허락 상태·상태 거르기·"허락 받음 · 트리 열기"·"정보 수정" (spec.md 2.3, 4.6) */}
-            {professors.length === 0 && <p className="rounded-xl border border-dashed border-white/40 p-4 text-center text-sm opacity-80">아직 교수님 트리가 없어요</p>}
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-display text-xl">교수님 목록</h2>
+              <span className="text-xs opacity-75">관심 많은 순</span>
+            </div>
+            <nav aria-label="상태로 거르기" className="flex gap-2">
+              {FILTERS.map((f) => (
+                <Link
+                  key={f.id} href={`/admin?tab=list&filter=${f.id}`} aria-current={f.id === filter ? "page" : undefined}
+                  className={`flex min-h-10 items-center rounded-full px-3.5 text-sm ${f.id === filter ? "bg-white font-bold text-slate-900" : "border border-white/40"}`}
+                >
+                  {f.label}
+                </Link>
+              ))}
+            </nav>
+            {professors.length === 0 && (
+              <p className="rounded-xl border border-dashed border-white/40 p-4 text-center text-sm opacity-80">
+                {filter === "all" ? "아직 교수님 트리가 없어요" : "해당하는 교수님이 없어요"}
+              </p>
+            )}
             {professors.map((t) => (
-              <div key={t.id} className="card flex items-center gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold">{t.owner_name}</p>
-                  <p className="truncate text-xs text-slate-500">{t.title} · 편지 {t.letter_count}통</p>
+              <div key={t.id} className="card flex flex-col gap-3 px-4 py-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold">{t.owner_name}</p>
+                    <p className="truncate text-xs text-slate-500">
+                      {[DEPARTMENTS.find((d) => d.id === t.department)?.name, `편지 ${t.letter_count}통`].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                  <span className="flex shrink-0 items-center gap-1 text-sm font-bold" aria-label={`관심 ${t.like_count}`}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg>
+                    {t.like_count}
+                  </span>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${t.is_open ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>
+                    {t.is_open ? "트리 열림" : "허락 대기"}
+                  </span>
                 </div>
-                <Link href={`/t/${t.slug}`} className="flex min-h-11 shrink-0 items-center rounded-xl border border-slate-300 px-3 text-sm font-bold">트리 보기</Link>
+                <div className="grid grid-cols-[3fr_2fr] gap-2">
+                  {t.is_open ? (
+                    <Link href={`/t/${t.slug}`} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">트리 보기</Link>
+                  ) : (
+                    <form action={adminSetTreeOpen}>
+                      <input type="hidden" name="tree_id" value={t.id} />
+                      <input type="hidden" name="open" value="1" />
+                      <ConfirmSubmitButton
+                        confirm={`${t.owner_name}께 허락을 받았나요? 트리를 열면 누구나 편지를 쓸 수 있어요.`}
+                        pendingLabel="여는 중…" className="btn btn-primary w-full whitespace-nowrap !px-2 !py-2 text-[13px]"
+                      >
+                        허락 받음 · 트리 열기
+                      </ConfirmSubmitButton>
+                    </form>
+                  )}
+                  {/* 정보 수정(adminUpdateSpecialTree)은 S21에서 서버가 만든 뒤 연결 */}
+                  <button type="button" disabled title="준비 중" className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold opacity-50">
+                    정보 수정
+                  </button>
+                </div>
               </div>
             ))}
           </section>
@@ -99,7 +159,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             {reports.map((l) => (
               <div key={l.id} className="card flex flex-col gap-2.5 p-4">
                 <div className="flex justify-between gap-2 text-xs text-slate-500">
-                  <span className="truncate">{l.trees?.title ?? "(알 수 없는 트리)"}</span>
+                  <span className="truncate">{l.tree_title ?? "(알 수 없는 트리)"}</span>
                   <span className="shrink-0">{new Date(l.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</span>
                 </div>
                 <p className="whitespace-pre-wrap rounded-lg bg-slate-100 px-3 py-2.5 text-sm leading-6">{l.content}</p>
@@ -120,6 +180,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </section>
         )}
       </div>
+      <Toast message={(toast && TOASTS[toast]) || null} clearQuery />
     </main>
   );
 }

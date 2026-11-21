@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { findOrnament, THEMES, type ThemeId } from "@/lib/constants";
+import { findOrnament, isTreeColor, THEMES, TREE_COLORS, type ThemeId } from "@/lib/constants";
 import { TOTAL_BULBS } from "@/lib/season";
 
 export type SceneOrnament = {
@@ -56,9 +56,11 @@ type Props = {
   starMode?: "normal" | "aplus";
   crying?: boolean;
   lockedIcons?: boolean;
+  /** 트리 색 id (trees.tree_color). 없거나 모르는 id면 theme의 트리 색 (spec.md 2.2·4.7) */
+  treeColor?: string | null;
 };
 
-export default function TreeScene({ theme, ornaments, season, onOrnamentClick, starMode = "normal", crying, lockedIcons }: Props) {
+export default function TreeScene({ theme, ornaments, season, onOrnamentClick, starMode = "normal", crying, lockedIcons, treeColor }: Props) {
   const [ponixRed, setPonixRed] = useState(false);
   const [ponixHop, setPonixHop] = useState(0);
   const [starClicks, setStarClicks] = useState(0);
@@ -70,6 +72,8 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const th = THEMES[(ponixRed ? "postech" : theme) as ThemeId] ?? THEMES.classic;
+  // 포닉스 이스터에그(빨간 트리) 중에는 그 색이 우선
+  const treeFill = !ponixRed && isTreeColor(treeColor) ? TREE_COLORS[treeColor].tree : th.tree;
   const p = season.progress;
   const lit = new Set(LIGHT_ORDER.slice(0, season.bulbsOn));
   const allOn = chase || season.revealed;
@@ -126,7 +130,7 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
 
         <g filter="url(#soft)">
           {TIERS.map((t, i) => (
-            <path key={i} d={`M150 ${t.ay} L${150 + t.hw} ${t.by} Q150 ${t.by + 16} ${150 - t.hw} ${t.by} Z`} fill={th.tree[i]} style={{ transition: "fill .6s" }} />
+            <path key={i} d={`M150 ${t.ay} L${150 + t.hw} ${t.by} Q150 ${t.by + 16} ${150 - t.hw} ${t.by} Z`} fill={treeFill[i]} style={{ transition: "fill .6s" }} />
           ))}
         </g>
 

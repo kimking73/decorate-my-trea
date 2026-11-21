@@ -1,8 +1,31 @@
 "use client";
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
+import { demoSignIn } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginButtons({ next = "/me", enableEmail = false }: { next?: string; enableEmail?: boolean }) {
+const KAKAO = "btn w-full !bg-[#FEE500] !text-[#191919] shadow-[0_4px_0_#c9b500]";
+
+export default function LoginButtons({ next = "/me", enableEmail = false, demo = false }: { next?: string; enableEmail?: boolean; demo?: boolean }) {
+  // 데모 모드: 실제 OAuth 대신 이 브라우저에 가짜 로그인 상태를 저장한다 (spec.md 4.2)
+  if (demo) {
+    return (
+      <form action={demoSignIn} className="flex w-full flex-col gap-3">
+        <input type="hidden" name="next" value={next} />
+        <DemoButton className={KAKAO}>💬 카카오로 시작하기</DemoButton>
+        <DemoButton className="btn btn-light w-full">Google로 시작하기</DemoButton>
+      </form>
+    );
+  }
+  return <RealLoginButtons next={next} enableEmail={enableEmail} />;
+}
+
+function DemoButton({ className, children }: { className: string; children: React.ReactNode }) {
+  const { pending } = useFormStatus();
+  return <button className={className} disabled={pending}>{pending ? "로그인하는 중…" : children}</button>;
+}
+
+function RealLoginButtons({ next, enableEmail }: { next: string; enableEmail: boolean }) {
   const [loading, setLoading] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -22,7 +45,7 @@ export default function LoginButtons({ next = "/me", enableEmail = false }: { ne
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <button className="btn w-full !bg-[#FEE500] !text-[#191919] shadow-[0_4px_0_#c9b500]" onClick={() => oauth("kakao")} disabled={!!loading}>
+      <button className={KAKAO} onClick={() => oauth("kakao")} disabled={!!loading}>
         💬 {loading === "kakao" ? "카카오로 이동하는 중…" : "카카오로 시작하기"}
       </button>
       <button className="btn btn-light w-full" onClick={() => oauth("google")} disabled={!!loading}>
