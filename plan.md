@@ -571,11 +571,11 @@
   - [x] `supabase/migrations/0005_professor_read_link.sql`: `trees.read_key`(컬럼 권한 숨김), `admin_issue_read_key`·`check_read_key`·`get_letters_by_read_key`, `admin_list_special_trees`에 `read_key`
   - [x] `scripts/test-rls.sql`: 공개 전 0건, 틀린·이전·빈·null 키 0건, 공개 후 맞는 키만(숨김 제외), 닫힌 트리 0건, 일반 유저·anon `read_key` 못 읽음·못 씀, 비관리자 발급 실패 — 빈 로컬 Postgres 16에서 통과
   - [x] `lib/data.ts` `getLettersByReadKey()`·`AdminTreeRow.read_key`, `app/actions.ts` `adminIssueReadLink` (데모: `/t/prof-demo?key=demo`만)
-  - [ ] 👤 운영 DB에 `0005` 적용 (SQL Editor) 후 실서버에서 링크 발급·열람 확인. 0003을 다시 돌렸다면 0005도 다시 돌린다 (0003이 `admin_list_special_trees`를 0005 이전 모양으로 되돌림)
+  - [ ] 👤 운영 DB에 `0005` 적용 (SQL Editor, **이 PR을 배포하기 전에** — 없으면 `?key=` 주소가 오류 화면, 링크 만들기 실패) 후 실서버에서 링크 발급·열람 확인. 0003을 다시 돌렸다면 0005도 다시 돌린다 (0003이 `admin_list_special_trees`를 0005 이전 모양으로 되돌림)
   - [ ] 관측 도구(S15)를 붙일 때 `?key=`가 수집되지 않게
 - [ ] **교수님 열람 링크 — 관리자 화면 (T9 완료 후보)** — 🖥 프론트엔드(와장창프론트엔드 리뷰)
   - [x] `/admin` 교수님 목록: "열람 링크 만들기 / 링크 다시 만들기"(확인 창) + `ReadLinkBox`(링크 보기·복사) + "다시 만들면 이전 링크는 못 써요" 안내
-  - [x] `/t/[slug]` page: `?key=` 분기, 키가 붙은 주소 `robots: noindex, nofollow`, OG url에 키 없음
+  - [x] `/t/[slug]` page: `?key=` 분기, 키가 붙은 주소 `robots: noindex, nofollow`·`referrer: no-referrer`, OG url에 키 없음
   - [ ] 👤 디자인 반영(D7) 때 관리자 카드 배치 확인
 - [ ] **교수님 열람 링크 — 열람 화면 (T9 완료 후보)** — 📱 클라이언트
   - [x] `TreeView` `reader` prop: 공개 전 잠금·카운트다운, 공개 후 장식 눌러 편지(고백 라벨 포함), 신고·공유·주인 메뉴 없음, 0시 새로고침 대기 30초(주인과 같음)
