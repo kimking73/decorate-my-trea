@@ -26,7 +26,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
       <Snow density={Math.round(30 + 70 * season.progress)} />
       <header className="relative z-10 mx-auto flex h-14 max-w-md items-center justify-between px-4">
         <Link href="/" className="font-display text-lg">🎄 포스텍 트리</Link>
-        <Link href={user ? "/me" : "/login"} className="flex min-h-11 items-center px-2 text-sm">{user ? "내 페이지" : "로그인"}</Link>
+        <Link href={user ? "/me" : "/login"} className="flex min-h-11 items-center px-2 text-sm">{user ? "내 트리" : "로그인"}</Link>
       </header>
       <div className="relative z-10 mx-auto flex max-w-md flex-col items-center px-4 pb-12 pt-4 text-center">
         <p className="text-sm tracking-widest opacity-80">POSTECH CHRISTMAS 2026</p>
@@ -109,7 +109,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
           <p className="mt-3 text-xs opacity-70">psst... 트리 꼭대기 별을 마구 눌러보세요. 트리 옆 포닉스도 한번 눌러보고, 편지에 특별한 단어를 쓰면 무슨 일이 생길지도?</p>
         </section>
 
-        <footer className="mt-8 text-xs opacity-60">Made by POSTECH students · {user ? <Link href="/me" className="underline">내 페이지</Link> : <Link href="/login" className="underline">로그인</Link>}</footer>
+        <footer className="mt-8 text-xs opacity-60">Made by POSTECH students · {user ? <Link href="/me" className="underline">내 트리</Link> : <Link href="/login" className="underline">로그인</Link>}</footer>
       </div>
     </main>
   );

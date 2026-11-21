@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import OwnerMenu from "@/components/OwnerMenu";
 import TreeView from "@/components/TreeView";
-import { demoMode, getLetters, getOrnaments, getRevealAt, getTreeBySlug, getUser } from "@/lib/data";
+import { demoMode, getLetters, getOrnaments, getProfile, getRevealAt, getTreeBySlug, getUser } from "@/lib/data";
 import { getSeason, parseForcedDday } from "@/lib/season";
 import { SITE_URL } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
-type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ added?: string; egg?: string; dday?: string; owner?: string }> };
+type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ added?: string; egg?: string; dday?: string; owner?: string; toast?: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function TreePage({ params, searchParams }: Params) {
   const { slug } = await params;
-  const { added, egg, dday, owner } = await searchParams;
+  const { added, egg, dday, owner, toast } = await searchParams;
   const tree = await getTreeBySlug(slug);
   if (!tree) notFound();
 
@@ -41,6 +42,10 @@ export default async function TreePage({ params, searchParams }: Params) {
   // demoMode 가 아니면 이 조건은 revealed 그대로라 실서버의 열람 판단은 바뀌지 않는다.
   const letters = isOwner && (revealed || (demoMode && season.revealed)) ? await getLetters(tree.id) : null;
 
+  // 주인 화면 = 내 트리: 예전 "내 페이지" 메뉴를 트리 아래에 붙인다 (spec.md 5.1, F10)
+  const profile = isOwner && user ? await getProfile() : null;
+  const shareUrl = `${SITE_URL}/t/${tree.slug}`;
+
   return (
     <TreeView
       tree={tree}
@@ -50,10 +55,11 @@ export default async function TreePage({ params, searchParams }: Params) {
       isLoggedIn={!!user}
       season={season}
       revealAt={revealAt.toISOString()}
-      shareUrl={`${SITE_URL}/t/${tree.slug}`}
+      shareUrl={shareUrl}
       justAdded={added === "1"}
       egg={egg}
       demo={demoMode}
+      ownerMenu={isOwner ? <OwnerMenu shareUrl={shareUrl} isAdmin={!!profile?.is_admin} demo={demoMode} toast={toast} /> : undefined}
     />
   );
 }

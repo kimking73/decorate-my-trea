@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type TouchEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode, type TouchEvent } from "react";
 import { useRouter } from "next/navigation";
 import TreeScene, { SLOTS_PER_PAGE, themeBackground, type SceneOrnament, type SceneSeason } from "@/components/TreeScene";
 import LetterModal, { type Letter } from "@/components/LetterModal";
@@ -23,6 +23,8 @@ type Props = {
   justAdded: boolean;
   egg?: string;
   demo: boolean;
+  /** 주인 화면(= 내 트리) 아래 메뉴. 프론트엔드 OwnerMenu (spec.md 2.2, F10) */
+  ownerMenu?: ReactNode;
 };
 
 // 스와이프로 인정하는 최소 가로 이동(px). 세로 스크롤과 구분하려고 가로가 세로의 1.5배 이상일 때만 넘긴다.
@@ -223,7 +225,7 @@ export default function TreeView(p: Props) {
               )}
               {revealed && count > 0 && <p className="text-center text-sm">장식을 눌러 편지를 읽어보세요 💌</p>}
               <ShareButtons url={p.shareUrl} title={p.tree.title} captureRef={captureRef} />
-              <Link href="/me" className="btn btn-ghost w-full">내 페이지</Link>
+              {p.ownerMenu ?? <Link href="/me" className="btn btn-ghost w-full">내 트리</Link>}
             </>
           ) : (
             <>

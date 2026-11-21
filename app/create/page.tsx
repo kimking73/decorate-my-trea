@@ -17,7 +17,7 @@ export default async function CreatePage() {
     <main className="min-h-dvh" style={{ background: "linear-gradient(#0f2a44,#1c4566)" }}>
       <header className="mx-auto flex h-14 max-w-md items-center px-2">
         <Link href={tree ? "/me" : "/"} className="flex min-h-11 items-center px-2 text-sm opacity-85">
-          {tree ? "← 내 페이지" : "← 홈으로"}
+          {tree ? "← 내 트리" : "← 홈으로"}
         </Link>
       </header>
       <div className="mx-auto max-w-md px-4 pb-8 pt-2">

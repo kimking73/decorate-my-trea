@@ -42,7 +42,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <div>
           <p className="text-5xl" aria-hidden>🔒</p>
           <h1 className="font-display mt-4 text-2xl">관리자만 볼 수 있어요</h1>
-          <Link href="/me" className="btn btn-primary mt-6">내 페이지로</Link>
+          <Link href="/me" className="btn btn-primary mt-6">내 트리로</Link>
         </div>
       </main>
     );
@@ -64,7 +64,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   return (
     <main className="mx-auto min-h-dvh max-w-md">
       <header className="flex h-14 items-center justify-between px-2">
-        <Link href="/me" className="flex min-h-11 items-center px-2 text-sm opacity-85">← 내 페이지</Link>
+        <Link href="/me" className="flex min-h-11 items-center px-2 text-sm opacity-85">← 내 트리</Link>
         <span className="pr-2 text-[15px] font-bold">관리자</span>
       </header>
 

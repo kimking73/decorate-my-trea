@@ -18,7 +18,7 @@ export default async function MyTreeStylePage() {
   return (
     <main className="min-h-dvh" style={{ background: "linear-gradient(#0f2a44,#1c4566)" }}>
       <header className="mx-auto flex h-14 max-w-md items-center justify-between px-2">
-        <Link href="/me" className="flex min-h-11 items-center px-2 text-sm opacity-85">← 내 페이지</Link>
+        <Link href="/me" className="flex min-h-11 items-center px-2 text-sm opacity-85">← 내 트리</Link>
         <span className="pr-2 text-[15px] font-bold">내 트리 꾸미기</span>
       </header>
       <div className="mx-auto max-w-md px-4 pb-6">
