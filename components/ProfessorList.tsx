@@ -7,10 +7,14 @@ import { DEPARTMENTS } from "@/lib/constants";
 import type { ProfessorRow } from "@/lib/data";
 
 const deptName = (id: string | null) => DEPARTMENTS.find((d) => d.id === id)?.name ?? "";
+// toggleProfessorLike가 로그인 만료일 때 돌려주는 문구 (app/actions.ts)
+const LOGIN_REQUIRED = "로그인하면 하트를 보낼 수 있어요.";
 
 // /professors 목록: 관심순·검색·하트 (spec.md 3장, 4.6). 검색은 받은 목록을 화면에서 거른다
 export default function ProfessorList({ professors, isLoggedIn }: { professors: ProfessorRow[]; isLoggedIn: boolean }) {
   const [rows, setRows] = useState(professors);
+  // 화면은 로그인 상태로 열렸지만 그사이 세션이 끝난 경우, 서버 응답을 보고 로그인 안내로 바꾼다
+  const [loggedIn, setLoggedIn] = useState(isLoggedIn);
   const [query, setQuery] = useState("");
   const [promptFor, setPromptFor] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -23,7 +27,7 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
   const shown = searching ? sorted.filter((p) => p.owner_name.includes(q) || deptName(p.department).includes(q)) : sorted;
 
   function onHeart(p: ProfessorRow) {
-    if (!isLoggedIn) {
+    if (!loggedIn) {
       setPromptFor(promptFor === p.id ? null : p.id);
       return;
     }
@@ -31,6 +35,11 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
     startTransition(async () => {
       const r = await toggleProfessorLike(p.id);
       setBusy(null);
+      if ("error" in r && r.error === LOGIN_REQUIRED) {
+        setLoggedIn(false);
+        setPromptFor(p.id);
+        return;
+      }
       if ("error" in r) {
         // 같은 오류가 연달아 나도 다시 보이게 seq를 올린다 (Toast가 seq 변화로 새 알림을 띄움)
         setToast((t) => ({ text: r.error, seq: (t?.seq ?? 0) + 1 }));
@@ -73,7 +82,7 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
               </div>
               <button
                 type="button" onClick={() => onHeart(p)} disabled={busy === p.id} aria-pressed={p.liked_by_me}
-                aria-label={`${p.liked_by_me ? "관심 취소" : "관심 보내기"}${isLoggedIn ? "" : " (로그인 필요)"}, 현재 ${p.like_count}`}
+                aria-label={`${p.liked_by_me ? "관심 취소" : "관심 보내기"}${loggedIn ? "" : " (로그인 필요)"}, 현재 ${p.like_count}`}
                 className={`flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-sm font-bold ${p.liked_by_me ? "border-[#c8102e] bg-red-50 text-[#c8102e]" : "border-slate-300 bg-white"}`}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill={p.liked_by_me ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg>
@@ -81,19 +90,19 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
               </button>
             </div>
 
-            {!isLoggedIn && promptFor === p.id && (
+            {!loggedIn && promptFor === p.id && (
               <div role="status" className="flex flex-col gap-2 rounded-xl bg-slate-100 p-3 text-sm leading-6">
                 <p><b>하트는 로그인한 사람만 누를 수 있어요.</b><br />로그인하면 이 화면으로 돌아와요.</p>
                 <Link href="/login?next=/professors" className="btn btn-primary w-full !py-2 text-sm">로그인하고 하트 보내기</Link>
               </div>
             )}
             {p.is_open && p.slug && (
-              <Link href={`/t/${p.slug}/write`} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">
+              <Link href={`/t/${p.slug}/write`} className="btn btn-primary w-full !py-2.5 text-sm">
                 트리 꾸미러 가기
               </Link>
             )}
             {searching && !p.is_open && (
-              <p role="status" className="text-sm leading-6 text-slate-600">아직 교수님의 허락을 받지 못했어요. 하지만 관심 버튼을 눌러주시면 도움이 돼요!</p>
+              <p role="status" className="rounded-lg bg-slate-100 px-3 py-2.5 text-sm leading-6 text-slate-700">아직 교수님의 허락을 받지 못했어요. 하지만 관심 버튼을 눌러주시면 도움이 돼요!</p>
             )}
           </li>
         ))}
