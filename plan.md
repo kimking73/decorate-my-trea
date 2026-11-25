@@ -399,7 +399,7 @@
     - 미들웨어 getUser()가 매 요청 Auth 서버를 부르는 부담 확인, 줄일 방법 검토
     - letters 조회에 필요한 인덱스 확인 (tree_id, hidden)
   - 완료 기준: 트리 페이지 1회의 Supabase 호출 수가 줄어든 것을 로그로 확인, 데모·실서버 흐름 그대로 동작
-- [ ] **S21** 서버 액션·조회 함수 추가 · 11/24(화)–11/25(수) · 선행: S20
+- [x] **S21** 서버 액션·조회 함수 추가 · 11/24(화)–11/25(수) · 선행: S20
   - 와이어프레임 반영 (2026-11-21 추가, 일정은 제안). 데모 분기(데모 교수님 목록) 함께 추가.
   - 할 일
     - getProfessors, toggleProfessorLike, adminSetTreeOpen, adminUpdateSpecialTree, saveTreeStyle, getReportedLetters
