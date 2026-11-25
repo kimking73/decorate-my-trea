@@ -20,7 +20,10 @@ const STORAGE_KEY = "postech-tree:reveal-refresh";
 
 export type RevealPhase = "idle" | "opening" | "failed";
 
-type Progress = { at: number; attempt: number };
+// path: 진행 중이던 트리 주소(pathname). 다른 화면·다른 트리에서는 이어받지 않는다 (spec.md 4.5)
+type Progress = { at: number; attempt: number; path: string };
+
+const here = () => window.location.pathname;
 
 // sessionStorage가 막힌 브라우저(일부 인앱·사생활 보호 모드)에서는 이 화면 안에서만 기억한다.
 let memoryProgress: Progress | null = null;
@@ -32,7 +35,7 @@ function readProgress(): Progress | null {
     p = raw ? JSON.parse(raw) : null;
   } catch {}
   const v = p as Progress | null;
-  return v && Number.isFinite(v.at) && Number.isInteger(v.attempt) && v.attempt > 0 ? v : null;
+  return v && Number.isFinite(v.at) && Number.isInteger(v.attempt) && v.attempt > 0 && typeof v.path === "string" ? v : null;
 }
 
 function writeProgress(p: Progress | null) {
@@ -64,7 +67,7 @@ export function useRevealRefresh(revealAt: string, revealed: boolean, maxJitterM
   const fire = useCallback(() => {
     const n = attemptRef.current + 1;
     attemptRef.current = n;
-    writeProgress({ at, attempt: n });
+    writeProgress({ at, attempt: n, path: here() });
     setSent(n);
     // 앞 요청이 끝날 때까지 pending이 true라, 다음 재시도는 그 뒤에 잡힌다 (요청이 겹치지 않음)
     startRefresh(() => router.refresh());
@@ -78,7 +81,7 @@ export function useRevealRefresh(revealAt: string, revealed: boolean, maxJitterM
       return;
     }
     const resumed = readProgress();
-    if (resumed && resumed.at === at && Date.now() <= at + LATE_WINDOW_MS) {
+    if (resumed && resumed.at === at && resumed.path === here() && Date.now() <= at + LATE_WINDOW_MS) {
       attemptRef.current = resumed.attempt;
       setSent(resumed.attempt);
       setDue(true);
@@ -142,7 +145,7 @@ export function useRevealErrorRecovery(reset: () => void): RevealPhase {
     const p = readProgress();
     if (!p || errorRecoveryPhase() !== "opening") return;
     const t = setTimeout(() => {
-      writeProgress({ at: p.at, attempt: p.attempt + 1 });
+      writeProgress({ ...p, attempt: p.attempt + 1 });
       // 다시 실패하면 error.tsx가 새로 그려지며 이 effect가 다음 시도를 잡는다
       startTransition(() => {
         router.refresh();
@@ -159,6 +162,7 @@ const noSubscribe = () => () => {};
 
 function errorRecoveryPhase(): RevealPhase {
   const p = readProgress();
-  if (!p || Date.now() > p.at + LATE_WINDOW_MS) return "idle";
+  // 다른 화면(예: /me/style)의 오류는 공개 재시도와 무관 → 원래 오류 화면
+  if (!p || p.path !== here() || Date.now() > p.at + LATE_WINDOW_MS) return "idle";
   return p.attempt >= MAX_ATTEMPTS ? "failed" : "opening";
 }
