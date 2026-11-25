@@ -35,6 +35,7 @@ const TABS = [
   { name: "owner-1", path: "/t/demo?owner=1", owner: true },
   { name: "owner-2", path: "/t/demo?owner=1", owner: true },
   { name: "owner-3", path: "/t/prof-demo?owner=1", owner: true },
+  { name: "reader", path: "/t/prof-demo?key=demo", owner: true }, // 교수님 비밀 열람 링크(T9): 주인처럼 0~30초
   { name: "visitor-1", path: "/t/demo", owner: false },
   { name: "visitor-2", path: "/t/demo", owner: false },
   { name: "visitor-3", path: "/t/prof-demo", owner: false },
