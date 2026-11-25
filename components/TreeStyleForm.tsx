@@ -30,7 +30,8 @@ export default function TreeStyleForm({ initialColor, initialTheme, ornaments, s
 
       <section aria-label="미리보기" className="relative overflow-hidden rounded-2xl" style={themeBackground(theme)}>
         <span className="absolute left-3 top-2.5 z-10 rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-slate-900">미리보기 · 장식은 그대로 보여요</span>
-        <div className="pointer-events-none mx-auto max-w-[260px] pt-6" aria-hidden>
+        {/* 미리보기 안의 별·포닉스·장식은 누르거나 Tab으로 가지 않게 inert (WriteForm 미리보기와 같음, spec.md 3장) */}
+        <div inert className="pointer-events-none mx-auto max-w-[260px] pt-6" aria-hidden>
           <TreeScene theme={theme} treeColor={color} ornaments={ornaments} season={season} lockedIcons />
         </div>
       </section>
