@@ -3,12 +3,14 @@
 // NEXT_PUBLIC_REVEAL_AT을 몇십 초 뒤로 두고 주인·방문자 탭을 여러 개 열어, 0시가 지난 뒤 각 탭이 언제 요청하는지와
 // 결국 열리는지를 기록한다. 실서버 동작과 무관한 검증용 스크립트다.
 //
-// 사용법: node scripts/reveal-check.mjs [--mode ok|http500|abort|throw] [--fail N] [--delay ms] [--lead ms] [--port 3100] [--prod] [--out result.json]
+// 사용법: node scripts/reveal-check.mjs [--mode ok|http500|abort|throw|path] [--fail N] [--delay ms] [--lead ms] [--port 3100] [--prod] [--out result.json]
 //   --prod   개발 서버 대신 공개 시각을 넣어 next build 후 next start (빌드 시간 때문에 --lead 기본 180초)
 //   ok       서버 정상
 //   http500  탭마다 공개 후 처음 N번 요청을 500(text/plain)으로 바꾼다 (브라우저 쪽에서 가로챔, 앱 코드 변경 없음)
 //   abort    탭마다 공개 후 처음 N번 요청을 네트워크 오류로 끊는다
 //   throw    DEMO_REVEAL_FAILURES=N으로 서버를 띄워 공개 후 트리 페이지 처음 N번이 throw (lib/data.ts 데모 분기)
+//   path     공개 1분 뒤로 띄우고 /t/demo/write가 계속 throw하게 한 뒤, 탭에 남은 재시도 기록의 주소가
+//            다르면 원래 오류 화면, 같으면 "꺼내는 중"인지만 확인한다 (다른 화면 오류에 "꺼내는 중"이 뜨지 않게)
 //   --delay  공개 후 새로 고침 응답을 ms만큼 늦춘다 (한 탭의 요청이 겹치지 않는지 확인)
 // 개발 서버가 .next를 쓰므로 npm run build·npm start와 동시에 돌리지 않는다 (결과가 깨진다).
 // `/t/demo?dday=7` 탭은 서버가 계속 공개 전 화면을 주는 경우라, 재시도를 다 쓰고 "다시 시도" 버튼이 나와야 한다.
@@ -44,12 +46,13 @@ const TABS = [
 ];
 
 // ---------- 서버 ----------
-const revealAt = new Date(Date.now() + LEAD);
+const revealAt = new Date(Date.now() + (MODE === "path" ? -60_000 : LEAD)); // path는 이미 공개된 뒤 1분
 const env = { ...process.env, NEXT_PUBLIC_REVEAL_AT: revealAt.toISOString(), NEXT_TELEMETRY_DISABLED: "1" };
 delete env.NEXT_PUBLIC_SUPABASE_URL;
 delete env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 delete env.SUPABASE_SERVICE_ROLE_KEY;
 if (MODE === "throw") env.DEMO_REVEAL_FAILURES = String(FAIL);
+else if (MODE === "path") env.DEMO_REVEAL_FAILURES = "1000";
 else delete env.DEMO_REVEAL_FAILURES;
 if (PROD) {
   // NEXT_PUBLIC_REVEAL_AT은 빌드 때 코드에 박히므로 빌드부터 다시 한다
@@ -73,8 +76,38 @@ async function waitForServer() {
   throw new Error("서버가 뜨지 않았어요\n" + serverLog.slice(-2000));
 }
 await waitForServer();
+if (MODE === "path") await pathCheck(); // 끝나면 종료
 for (const t of TABS) await fetch(BASE + t.path).catch(() => {}); // 개발 서버 첫 컴파일을 미리
 if (Date.now() > revealAt.getTime() - 10_000) throw new Error("--lead가 너무 짧아요 (서버 준비 뒤 10초 이상 남아야 함)");
+
+// ---------- path 모드 ----------
+async function pathCheck() {
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 375, height: 800 } });
+  const at = revealAt.getTime();
+  async function screenWith(path) {
+    await page.goto(BASE + "/t/demo/write");
+    await page.evaluate(([at, path]) => sessionStorage.setItem("postech-tree:reveal-refresh", JSON.stringify({ at, attempt: 1, path })), [at, path]);
+    await page.reload();
+    await page.waitForTimeout(1500);
+    const text = (await page.textContent("main")) ?? "";
+    return text.includes("꺼내는 중") ? "opening" : text.includes("잠시 문제가 생겼어요") ? "error-page" : `other: ${text.slice(0, 60)}`;
+  }
+  const cases = [
+    { name: "다른 주소 기록 (/t/demo)", path: "/t/demo", expect: "error-page" },
+    { name: "같은 주소 기록 (/t/demo/write)", path: "/t/demo/write", expect: "opening" },
+  ];
+  const problems = [];
+  for (const c of cases) {
+    const got = await screenWith(c.path);
+    console.log(`${c.name.padEnd(30)} → ${got}`);
+    if (got !== c.expect) problems.push(`${c.name}: ${got} (기대 ${c.expect})`);
+  }
+  await browser.close();
+  stopServer();
+  console.log(problems.length ? `\n문제:\n- ${problems.join("\n- ")}` : "\n다른 화면 오류는 원래 오류 화면, 같은 화면은 꺼내는 중 — 기대대로예요");
+  process.exit(problems.length ? 1 : 0);
+}
 
 // ---------- 탭 ----------
 const t0 = revealAt.getTime();

@@ -77,7 +77,8 @@ export function useRevealRefresh(revealAt: string, revealed: boolean, maxJitterM
   useEffect(() => {
     if (!Number.isFinite(at)) return;
     if (revealed) {
-      if (readProgress()?.at === at) writeProgress(null);
+      const done = readProgress();
+      if (done?.at === at && done.path === here()) writeProgress(null); // 다른 트리의 기록은 그대로 둔다
       return;
     }
     const resumed = readProgress();
