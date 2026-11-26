@@ -35,9 +35,11 @@ export default function Countdown({ target, compact = false }: { target: string;
       <span className="text-[11px] opacity-80">{label}</span>
     </div>
   );
+  // 숫자 상자는 매초 바뀌므로 숨기고, 스크린 리더에는 한 문장으로 (알림 영역이 아니라 매초 읽지는 않는다)
   return (
-    <div className="flex justify-center gap-2" aria-label="크리스마스까지 남은 시간">
-      {box(v.d, "일")}{box(v.h, "시간")}{box(v.m, "분")}{box(v.s, "초")}
+    <div className="flex justify-center gap-2">
+      <p className="sr-only">크리스마스까지 {v.d}일 {v.h}시간 {v.m}분 남았어요</p>
+      <div className="contents" aria-hidden>{box(v.d, "일")}{box(v.h, "시간")}{box(v.m, "분")}{box(v.s, "초")}</div>
     </div>
   );
 }
