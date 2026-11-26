@@ -182,10 +182,11 @@ export async function toggleProfessorLike(treeId: string): Promise<{ liked: bool
     return { liked, count: base + (liked ? 1 : 0) };
   }
   const supabase = await createClient();
-  // 로그인이 끝난 요청은 RPC 실행 권한이 없어(0003: authenticated만) 함수 안의 login_required까지 가지 못한다 → 먼저 확인
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return LIKE_LOGIN_REQUIRED;
+  // 로그인 확인을 따로 하지 않고 RPC 한 번으로 끝낸다 (하트가 몰릴 때 Auth 왕복을 줄임).
+  // 세션이 없거나 끝난 요청은 anon으로 가서 실행 권한이 없으므로(0003: authenticated만) 42501,
+  // 만료된 토큰이 그대로 가면 PostgREST가 PGRST301/PGRST303 → 둘 다 로그인 필요
   const { data, error } = await supabase.rpc("toggle_professor_like", { p_tree_id: treeId });
+  if (error && ["42501", "PGRST301", "PGRST303"].includes(error.code)) return LIKE_LOGIN_REQUIRED;
   if (error) return { error: "잠시 후 다시 눌러 주세요." };
   const r = (data ?? {}) as { error?: string; liked?: boolean; like_count?: number };
   if (r.error === "login_required") return LIKE_LOGIN_REQUIRED;

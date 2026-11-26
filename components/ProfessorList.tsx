@@ -11,7 +11,8 @@ const deptName = (id: string | null) => DEPARTMENTS.find((d) => d.id === id)?.na
 // /professors 목록: 관심순·검색·하트 (spec.md 3장, 4.6). 검색은 받은 목록을 화면에서 거른다
 export default function ProfessorList({ professors, isLoggedIn }: { professors: ProfessorRow[]; isLoggedIn: boolean }) {
   const [rows, setRows] = useState(professors);
-  // 화면은 로그인 상태로 열렸지만 그사이 세션이 끝난 경우, 서버 응답을 보고 로그인 안내로 바꾼다
+  // 화면은 로그인 상태로 열렸지만 그사이 세션이 끝난 경우, 서버 응답을 보고 로그인 안내로 바꾼다.
+  // 다른 탭에서 다시 로그인했을 수 있으므로 이후 클릭도 서버에 보내고, 성공하면 되돌린다
   const [loggedIn, setLoggedIn] = useState(isLoggedIn);
   const [query, setQuery] = useState("");
   const [promptFor, setPromptFor] = useState<string | null>(null);
@@ -25,7 +26,8 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
   const shown = searching ? sorted.filter((p) => p.owner_name.includes(q) || deptName(p.department).includes(q)) : sorted;
 
   function onHeart(p: ProfessorRow) {
-    if (!loggedIn) {
+    // 처음부터 로그인하지 않은 화면은 서버에 묻지 않고 안내만 연다
+    if (!isLoggedIn) {
       setPromptFor(promptFor === p.id ? null : p.id);
       return;
     }
@@ -43,6 +45,8 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
         setToast((t) => ({ text: r.error, seq: (t?.seq ?? 0) + 1 }));
         return;
       }
+      setLoggedIn(true);
+      setPromptFor(null);
       setRows((all) => all.map((x) => (x.id === p.id ? { ...x, liked_by_me: r.liked, like_count: r.count } : x)));
     });
   }
@@ -68,7 +72,10 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
       )}
 
       <ul className="mt-3 flex flex-col gap-2.5">
-        {shown.map((p, i) => (
+        {shown.map((p, i) => {
+          // 로그인이 끝난 동안에는 예전에 누른 하트를 채워 보이지 않는다 (눌러도 취소되지 않으므로)
+          const liked = loggedIn && p.liked_by_me;
+          return (
           <li key={p.id} className="card flex flex-col gap-3 p-4 text-slate-900">
             <div className="flex items-center gap-3">
               {!searching && <span className="font-display w-6 shrink-0 text-center text-lg text-slate-500">{i + 1}</span>}
@@ -79,11 +86,11 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
                 </p>
               </div>
               <button
-                type="button" onClick={() => onHeart(p)} disabled={busy === p.id} aria-pressed={p.liked_by_me}
-                aria-label={`${p.liked_by_me ? "관심 취소" : "관심 보내기"}${loggedIn ? "" : " (로그인 필요)"}, 현재 ${p.like_count}`}
-                className={`flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-sm font-bold ${p.liked_by_me ? "border-[#c8102e] bg-red-50 text-[#c8102e]" : "border-slate-300 bg-white"}`}
+                type="button" onClick={() => onHeart(p)} disabled={busy === p.id} aria-pressed={liked}
+                aria-label={`${liked ? "관심 취소" : "관심 보내기"}${loggedIn ? "" : " (로그인 필요)"}, 현재 ${p.like_count}`}
+                className={`flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full border px-3 text-sm font-bold ${liked ? "border-[#c8102e] bg-red-50 text-[#c8102e]" : "border-slate-300 bg-white"}`}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill={p.liked_by_me ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg>
                 <span className="tabular-nums">{p.like_count.toLocaleString()}</span>
               </button>
             </div>
@@ -102,11 +109,14 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
                 트리 꾸미러 가기
               </Link>
             )}
-            {searching && !p.is_open && (
-              <p role="status" className="rounded-lg bg-slate-100 px-3 py-2.5 text-sm leading-6 text-slate-700">아직 교수님의 허락을 받지 못했어요. 하지만 관심 버튼을 눌러주시면 도움이 돼요!</p>
-            )}
+            <div role="status" className="empty:hidden">
+              {searching && !p.is_open && (
+                <p className="rounded-lg bg-slate-100 px-3 py-2.5 text-sm leading-6 text-slate-700">아직 교수님의 허락을 받지 못했어요. 하지만 관심 버튼을 눌러주시면 도움이 돼요!</p>
+              )}
+            </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
       <Toast message={toast?.text ?? null} seq={toast?.seq} />
     </>

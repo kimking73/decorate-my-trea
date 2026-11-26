@@ -106,7 +106,7 @@
 | `/create` | `getUser()`, `getMyTree()`, `getProfile()`, `getRevealAt()`, `saveMyTree(FormState, FormData)` (새로 만들기·이름 바꾸기 공용, 이름 최대 20자) | 이름 바꾸기 성공 시 `/t/[slug]` 대신 `/me?toast=renamed`로 이동 (새로 만들기는 지금처럼 `/t/[slug]`) |
 | `/me` | `getUser()`, `getMyTree()` (트리가 있으면 `/t/[slug]`로 보냄), `POST /auth/signout` | - |
 | `/me/style` | `getUser()`, `getMyTree()` | `saveTreeStyle(FormState, FormData)` — `tree_color`·`theme` 저장, 트리 주인만, 성공 시 `/me?toast=styled` |
-| `/professors` | `getUser()` | `getProfessors(): Promise<ProfessorRow[]>` (관심순), `toggleProfessorLike(treeId): Promise<{ liked: boolean; count: number } \| { error: string; code?: "login_required" }>` (로그인 확인은 RPC 전에 서버 액션이 `auth.getUser()`로 — 로그인이 끝난 요청은 RPC 실행 권한이 없어 함수 안의 `login_required`까지 가지 못함) — DB 함수 `list_professors()`·`toggle_professor_like()`는 0003(S20)에 있음 |
+| `/professors` | `getUser()` | `getProfessors(): Promise<ProfessorRow[]>` (관심순), `toggleProfessorLike(treeId): Promise<{ liked: boolean; count: number } \| { error: string; code?: "login_required" }>` (따로 로그인 확인 없이 RPC 한 번 — 로그인이 끝난 요청은 anon이라 RPC 실행 권한이 없어 `42501`이 오고, 이를 `login_required`로 바꾼다) — DB 함수 `list_professors()`·`toggle_professor_like()`는 0003(S20)에 있음 |
 | `/t/[slug]` · `/t/[slug]/write` | `getTreeBySlug()`, `getUser()`, `getOrnaments()`, `getRevealAt()`, `getLetters()` (주인일 때만), `POST /api/letters`, 신고는 `TreeView`가 `report_letter` RPC 직접 호출 (클라이언트 소유) | `getTreeBySlug()`가 허락 대기 교수님 트리는 `null` 반환 (4.6) — 관리자·트리 주인은 주소로 직접 들어오면 볼 수 있다 |
 | `/t/[slug]?key=…` 교수님 열람 (T9) | `getLettersByReadKey(slug, key): Promise<Letter[] \| null>` — `null` = 키가 틀림(방문자 화면), 배열 = 키가 맞음(공개 전이나 편지가 없으면 `[]`). 교수님 트리이고 `key`가 있을 때만 부른다 | - (T9에서 추가) |
 | `/admin` 교수님 트리 만들기 | `getUser()`, `getProfile()`, `adminCreateSpecialTree` (`kind=professor` 고정, 허락 대기로 생성) | 실패 문구를 사용자용으로 (아래 오류 계약) |
@@ -153,8 +153,8 @@
 2. 관심 많은 순으로 교수님 목록(순위·이름·학과·"트리 열림/허락 대기"·관심 수). 이름·학과로 검색
 3. 트리가 열린 교수님: "트리 꾸미러 가기" → `/t/[slug]/write` (친구 흐름과 같음)
 4. 허락 대기 교수님: 하트로 관심 보내기. 검색 결과에서는 "아직 교수님의 허락을 받지 못했어요. 하지만 관심 버튼을 눌러주시면 도움이 돼요!" 안내
-5. 하트는 로그인한 사람만 (4.6). 로그인 안 한 사람이 누르면 그 줄 아래에 로그인 안내 → `/login?next=/professors`. 화면을 연 뒤 로그인이 끝난 경우(서버가 로그인 필요로 거부)에도 알림 대신 같은 로그인 안내를 보여 준다
-6. 불러오는 동안 공통 `loading.tsx`(뼈대 화면), 목록 조회 실패는 `app/error.tsx` (2.3 오류 계약)
+5. 하트는 로그인한 사람만 (4.6). 로그인 안 한 사람이 누르면 그 줄 아래에 로그인 안내 → `/login?next=/professors`. 화면을 연 뒤 로그인이 끝난 경우(서버가 로그인 필요로 거부)에도 알림 대신 같은 로그인 안내를 보여 주고, 그동안 누른 하트는 비워 보인다. 다른 탭에서 다시 로그인했을 수 있으므로 이후 하트도 서버에 보내고, 성공하면 안내를 닫는다. 인증 서버 오류 같은 일시적 실패는 로그인 안내가 아니라 "잠시 후 다시 눌러 주세요." 알림
+6. 링크로 공유되는 공개 화면이라 `loading.tsx`(뼈대 화면)를 두지 않는다 (5.1 공통 상태 — 스트리밍되면 미리보기 봇이 og 태그를 못 읽음). 목록 조회 실패는 `app/error.tsx` (2.3 오류 계약)
 
 ### 교수님 트리 (관리자)
 - 관리자가 `/admin` "교수님 트리 만들기" 탭에서 교수님 트리를 **허락 대기** 상태로 만든다 (칠판 테마, 교수님 전용 장식, 학과 선택). 트리 주인은 만든 관리자 계정이다.
