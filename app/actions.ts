@@ -168,21 +168,27 @@ export async function adminResolve(fd: FormData) {
 }
 
 // ---------- 교수님 하트 (spec.md 4.6) ----------
-export async function toggleProfessorLike(treeId: string): Promise<{ liked: boolean; count: number } | { error: string }> {
+type LikeError = { error: string; code?: "login_required" };
+const LIKE_LOGIN_REQUIRED: LikeError = { error: "로그인하면 하트를 보낼 수 있어요.", code: "login_required" };
+
+export async function toggleProfessorLike(treeId: string): Promise<{ liked: boolean; count: number } | LikeError> {
   if (demoMode) {
     const s = await readDemoSession();
     const base = demoProfessorBaseCount(treeId);
-    if (!s) return { error: "로그인하면 하트를 보낼 수 있어요." };
+    if (!s) return LIKE_LOGIN_REQUIRED;
     if (base === null) return { error: "교수님을 찾을 수 없어요." };
     const liked = !s.likes.includes(treeId);
     await writeDemoSession({ ...s, likes: liked ? [...s.likes, treeId] : s.likes.filter((x) => x !== treeId) });
     return { liked, count: base + (liked ? 1 : 0) };
   }
   const supabase = await createClient();
+  // 로그인이 끝난 요청은 RPC 실행 권한이 없어(0003: authenticated만) 함수 안의 login_required까지 가지 못한다 → 먼저 확인
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return LIKE_LOGIN_REQUIRED;
   const { data, error } = await supabase.rpc("toggle_professor_like", { p_tree_id: treeId });
   if (error) return { error: "잠시 후 다시 눌러 주세요." };
   const r = (data ?? {}) as { error?: string; liked?: boolean; like_count?: number };
-  if (r.error === "login_required") return { error: "로그인하면 하트를 보낼 수 있어요." };
+  if (r.error === "login_required") return LIKE_LOGIN_REQUIRED;
   if (r.error) return { error: "교수님을 찾을 수 없어요." };
   revalidatePath("/professors");
   return { liked: !!r.liked, count: Number(r.like_count ?? 0) };

@@ -7,8 +7,6 @@ import { DEPARTMENTS } from "@/lib/constants";
 import type { ProfessorRow } from "@/lib/data";
 
 const deptName = (id: string | null) => DEPARTMENTS.find((d) => d.id === id)?.name ?? "";
-// toggleProfessorLike가 로그인 만료일 때 돌려주는 문구 (app/actions.ts)
-const LOGIN_REQUIRED = "로그인하면 하트를 보낼 수 있어요.";
 
 // /professors 목록: 관심순·검색·하트 (spec.md 3장, 4.6). 검색은 받은 목록을 화면에서 거른다
 export default function ProfessorList({ professors, isLoggedIn }: { professors: ProfessorRow[]; isLoggedIn: boolean }) {
@@ -35,7 +33,7 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
     startTransition(async () => {
       const r = await toggleProfessorLike(p.id);
       setBusy(null);
-      if ("error" in r && r.error === LOGIN_REQUIRED) {
+      if ("error" in r && r.code === "login_required") {
         setLoggedIn(false);
         setPromptFor(p.id);
         return;
@@ -90,12 +88,15 @@ export default function ProfessorList({ professors, isLoggedIn }: { professors: 
               </button>
             </div>
 
-            {!loggedIn && promptFor === p.id && (
-              <div role="status" className="flex flex-col gap-2 rounded-xl bg-slate-100 p-3 text-sm leading-6">
-                <p><b>하트는 로그인한 사람만 누를 수 있어요.</b><br />로그인하면 이 화면으로 돌아와요.</p>
-                <Link href="/login?next=/professors" className="btn btn-primary w-full !py-2 text-sm">로그인하고 하트 보내기</Link>
-              </div>
-            )}
+            {/* 라이브 영역은 늘 두고 안의 내용만 바꾼다 (새로 붙은 영역은 스크린리더가 읽지 않는 경우가 많음) */}
+            <div role="status" className="empty:hidden">
+              {!loggedIn && promptFor === p.id && (
+                <div className="flex flex-col gap-2 rounded-xl bg-slate-100 p-3 text-sm leading-6">
+                  <p><b>하트는 로그인한 사람만 누를 수 있어요.</b><br />로그인하면 이 화면으로 돌아와요.</p>
+                  <Link href="/login?next=/professors" className="btn btn-primary w-full !py-2 text-sm">로그인하고 하트 보내기</Link>
+                </div>
+              )}
+            </div>
             {p.is_open && p.slug && (
               <Link href={`/t/${p.slug}/write`} className="btn btn-primary w-full !py-2.5 text-sm">
                 트리 꾸미러 가기
