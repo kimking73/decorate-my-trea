@@ -19,6 +19,14 @@ body {
 
 .font-display { font-family: var(--font-display); }
 
+/* 키보드 포커스 링 (C9): 안쪽 남색 + 바깥 노랑 두 겹이라 남색 배경·흰 카드 모두에서 보인다.
+   :where 로 우선순위 0 — 컴포넌트가 따로 정한 포커스 스타일이 있으면 그쪽이 이긴다. 마우스·터치 포커스엔 안 뜬다. */
+:where(a, button, input, textarea, select, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 3px solid #ffd84d;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #0f2a44;
+}
+
 .card {
   background: rgba(255, 255, 255, 0.95);
   color: #1d2b3a;
@@ -93,8 +101,13 @@ body {
 @keyframes ponix-hop-k { 0%,100% { transform: translateY(0); } 35% { transform: translateY(-18%) rotate(-8deg); } 70% { transform: translateY(0) rotate(4deg); } }
 .ponix-hop { animation: ponix-hop-k .5s ease-out; }
 
-/* 동작 줄이기: 계속 도는 장식 애니메이션을 멈춘다 (눈은 Snow.tsx 에서 멈춤). 탭해서 나오는 반응은 그대로 둔다. */
+/* 동작 줄이기 (spec.md 4.2): 계속 도는 연출은 멈추고, 크게 움직이는 연출은 숨기고, 탭 반응은 움직임 없이 남긴다.
+   눈은 Snow.tsx, 폭죽·하트는 WriteForm.tsx 에서 끈다. */
+@keyframes star-glow-k { 0%,100% { filter: drop-shadow(0 0 6px #ffe680); } 40% { filter: drop-shadow(0 0 22px #fff3a0); } }
 @media (prefers-reduced-motion: reduce) {
-  .ornament-sway, .bulb-on, .bulbs-rainbow { animation: none; }
+  .ornament-sway, .bulb-on, .bulbs-rainbow, .bulb-chase, .cry, .shake, .ponix-hop, .pop-in, .float-heart { animation: none; }
+  .bulb-chase { opacity: 1; }
   .twinkle-glow { animation: none; opacity: .5; }
+  .star-burst { animation: star-glow-k .55s ease-out; }
+  .sleigh, .float-heart { display: none; }
 }

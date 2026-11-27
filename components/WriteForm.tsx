@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import Snow from "@/components/Snow";
@@ -22,6 +22,11 @@ const DEFAULT_NICK = "익명의 산타";
 const PREVIEW_SCALE = 0.5;
 // 2단계일 때 history.state 에 붙이는 표시 (폰의 뒤로 가기 = "장식 다시 고르기", spec.md 3장)
 const STEP_KEY = "writeStep";
+
+// 동작 줄이기면 폭죽·하트를 띄우지 않는다 (spec.md 4.2). 안내 문구는 그대로
+function reducedMotion() {
+  try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
+}
 
 // 응답 코드별 오류 제목 (spec.md 3장 5). 본문은 서버 문구를 그대로 쓴다 — 응답 형식(5.2)은 그대로
 function errorTitle(status: number) {
@@ -158,21 +163,34 @@ export default function WriteForm({ tree, ornaments, season }: Props) {
 
     // 숨은 키워드 이스터에그
     const e = findKeywordEgg(content);
+    const still = reducedMotion();
     let delay = 600;
     if (e) {
       setEgg(e.message);
       delay = 2200;
-      if (e.effect === "confetti") confetti({ particleCount: 180, spread: 100, origin: { y: 0.7 } });
-      if (e.effect === "heart") setHearts(true);
+      if (e.effect === "confetti" && !still) confetti({ particleCount: 180, spread: 100, origin: { y: 0.7 } });
+      if (e.effect === "heart" && !still) setHearts(true);
     } else if (confession) {
-      setHearts(true);
+      if (!still) setHearts(true);
       setEgg("💘 두근두근... 크리스마스에 전해질 거예요");
       delay = 2000;
-    } else {
+    } else if (!still) {
       confetti({ particleCount: 60, spread: 60, origin: { y: 0.8 }, colors: ["#c8102e", "#1f7a45", "#ffd36b"] });
     }
     const q = e && (e.effect === "aplus" || e.effect === "cry") ? `&egg=${e.effect}` : "";
     setTimeout(() => router.push(`/t/${tree.slug}?added=1${q}`), delay);
+  }
+
+  // 장식 종류 탭: ←/→/Home/End 로 옮기고 Tab 순서에는 고른 탭 하나만 (spec.md 4.2 접근성)
+  function onTabKey(e: KeyboardEvent<HTMLButtonElement>) {
+    const i = tabs.findIndex((t) => t.id === tab);
+    const to = e.key === "ArrowRight" ? (i + 1) % tabs.length
+      : e.key === "ArrowLeft" ? (i - 1 + tabs.length) % tabs.length
+      : e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : -1;
+    if (to < 0) return;
+    e.preventDefault();
+    setTab(tabs[to].id);
+    e.currentTarget.parentElement?.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
   }
 
   const current = tabs.find((t) => t.id === tab)!;
@@ -220,23 +238,24 @@ export default function WriteForm({ tree, ornaments, season }: Props) {
                   />
                 </div>
               </div>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-800 shadow">{selected.emoji} {selected.label} 달 자리</span>
+              <span aria-hidden className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-800 shadow">{selected.emoji} {selected.label} 달 자리</span>
             </div>
 
             <section className="card mt-3 p-4">
               <div role="tablist" aria-label="장식 종류" className="mb-3 flex gap-1.5 overflow-x-auto">
                 {tabs.map((t) => (
-                  <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} aria-controls="ornament-panel" onClick={() => setTab(t.id)}
+                  <button key={t.id} type="button" role="tab" id={`ornament-tab-${t.id}`} aria-selected={tab === t.id} aria-controls="ornament-panel"
+                    tabIndex={tab === t.id ? 0 : -1} onClick={() => setTab(t.id)} onKeyDown={onTabKey}
                     className={`min-h-10 shrink-0 rounded-full px-3.5 text-sm ${tab === t.id ? "bg-[#c8102e] font-bold text-white" : "bg-slate-100"}`}>
                     {t.name}
                   </button>
                 ))}
               </div>
-              <div id="ornament-panel" role="tabpanel" aria-label={current.name} className="grid grid-cols-4 gap-2">
+              <div id="ornament-panel" role="tabpanel" aria-labelledby={`ornament-tab-${current.id}`} className="grid grid-cols-4 gap-2">
                 {current.items.map((o) => (
                   <button key={o.id} type="button" aria-pressed={ornament === o.id} onClick={() => setOrnament(o.id)}
                     className={`flex min-h-[84px] flex-col items-center justify-center gap-1 rounded-2xl p-2 ${ornament === o.id ? "ring-3 ring-[#c8102e]" : ""}`}>
-                    <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-white text-2xl shadow" style={{ background: o.bg }}>{o.emoji}</span>
+                    <span aria-hidden className="grid h-12 w-12 place-items-center rounded-full border-2 border-white text-2xl shadow" style={{ background: o.bg }}>{o.emoji}</span>
                     <span className="text-center text-[11px] leading-tight">{o.label}</span>
                   </button>
                 ))}
@@ -261,7 +280,7 @@ export default function WriteForm({ tree, ornaments, season }: Props) {
 
             <section className={`card mt-4 flex flex-col gap-4 p-4 ${egged?.effect === "cry" ? "shake" : ""}`}>
               <div className="flex items-center gap-3 rounded-xl border-[1.5px] border-slate-200 px-3 py-2.5">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-white text-2xl shadow" style={{ background: selected.bg }}>
+                <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-white text-2xl shadow" style={{ background: selected.bg }}>
                   {egged?.effect === "cry" ? "😭" : selected.emoji}
                 </span>
                 <span className="flex flex-col">
@@ -275,7 +294,7 @@ export default function WriteForm({ tree, ornaments, season }: Props) {
                 <input
                   id="write-nick" value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={20}
                   placeholder={DEFAULT_NICK} enterKeyHint="next" aria-describedby="write-nick-help"
-                  className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base outline-none focus:border-[#c8102e]"
+                  className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base focus:border-[#c8102e]"
                 />
                 <span id="write-nick-help" className="text-xs text-slate-500">비워 두면 &lsquo;{DEFAULT_NICK}&rsquo;로 달려요. 장식 아래에 보이는 이름이에요.</span>
               </div>
@@ -285,7 +304,7 @@ export default function WriteForm({ tree, ornaments, season }: Props) {
                 <textarea
                   id="write-letter" value={content} onChange={(e) => setContent(e.target.value)} maxLength={1000} rows={7}
                   placeholder={isProfessor ? "교수님, 한 학기 동안 감사했습니다..." : "크리스마스에 전하고 싶은 말을 적어 주세요"}
-                  className="min-h-[150px] w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base leading-7 outline-none focus:border-[#c8102e]"
+                  className="min-h-[150px] w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base leading-7 focus:border-[#c8102e]"
                 />
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>{egged ? "✨ 뭔가 일어날 것 같은 예감..." : ""}</span>
@@ -316,10 +335,11 @@ export default function WriteForm({ tree, ornaments, season }: Props) {
       </div>
 
       {egg && (
-        <div className="pop-in fixed inset-x-0 top-1/3 z-50 mx-auto w-max max-w-[90%] rounded-2xl bg-black/80 px-5 py-3 text-center text-white">{egg}</div>
+        <div aria-hidden className="pop-in fixed inset-x-0 top-1/3 z-50 mx-auto w-max max-w-[90%] rounded-2xl bg-black/80 px-5 py-3 text-center text-white">{egg}</div>
       )}
+      <p className="sr-only" role="status">{egg ?? ""}</p>
       {hearts && (
-        <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
           {Array.from({ length: 18 }).map((_, i) => (
             <span key={i} className="float-heart absolute bottom-0 text-3xl"
               style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 6) * 0.15}s` }}>💗</span>

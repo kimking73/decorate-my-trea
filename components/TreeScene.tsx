@@ -181,16 +181,18 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
       ))}
 
       {/* 꼭대기 별 */}
+      {/* 다시 반짝이게 하려고 바꾸는 key 는 버튼 안쪽에 둔다 — 버튼 자체가 다시 만들어지면 키보드 포커스가 사라진다 (C9) */}
       <button
-        key={starBurst}
         type="button"
         onClick={onStar}
-        aria-label="트리 꼭대기 별"
-        className={`absolute left-1/2 top-[1%] -translate-x-1/2 text-4xl ${starGlow ? "" : "opacity-80"} ${starBurst ? "star-burst" : ""}`}
+        aria-label="트리 꼭대기 별 (누르면 반짝, 일곱 번 연달아 누르면 산타가 와요)"
+        className={`absolute left-1/2 top-[1%] grid min-h-11 min-w-11 -translate-x-1/2 place-items-center text-4xl ${starGlow ? "" : "opacity-80"}`}
       >
         {/* 빛나는 별: 약한 빛(고정) 위에 강한 빛 복사본을 겹쳐 opacity 만 움직인다 (filter 를 애니메이션하면 매 프레임 다시 그린다) */}
-        <span className={starGlow ? "twinkle" : undefined}>{star}</span>
-        {starGlow && <span className="twinkle-glow" aria-hidden>{star}</span>}
+        <span key={starBurst} className={`relative block ${starBurst ? "star-burst" : ""}`} aria-hidden>
+          <span className={starGlow ? "twinkle" : "block"}>{star}</span>
+          {starGlow && <span className="twinkle-glow">{star}</span>}
+        </span>
       </button>
 
       {/* 장식(편지). 페이지가 바뀌면 key가 바뀌어 장식 묶음만 다시 들어온다 (.page-anim 안에서만 애니메이션). */}
@@ -205,16 +207,17 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
             onClick={() => onOrnamentClick?.(o)}
             className={`pointer-events-auto absolute flex w-[15%] -translate-x-1/2 -translate-y-1/2 flex-col items-center ${o.isNew ? "pop-in" : ""}`}
             style={{ left: `${(x / 300) * 100}%`, top: `${(y / 370) * 100}%` }}
-            aria-label={`${o.nickname}의 ${orn.label} 장식`}
+            aria-label={`${o.nickname}의 ${orn.label} 장식${lockedIcons ? ", 12월 25일에 열려요" : ""}`}
           >
             <span
+              aria-hidden
               className={`ornament-sway relative grid aspect-square w-[66%] place-items-center rounded-full border-2 border-white/80 text-[clamp(13px,4.2vw,19px)] shadow-md ${crying ? "cry" : ""}`}
               style={{ background: orn.bg, animationDelay: `${(i % 5) * 0.3}s` }}
             >
               {crying ? "😭" : orn.emoji}
               {lockedIcons && <span className="absolute -bottom-1 -right-1 text-[10px]">🔒</span>}
             </span>
-            <span className="mt-0.5 max-w-[130%] truncate rounded-full bg-black/40 px-1 text-[9px] leading-[14px] text-white">
+            <span aria-hidden className="mt-0.5 max-w-[130%] truncate rounded-full bg-black/60 px-1 text-[9px] leading-[14px] text-white">
               {o.nickname}
             </span>
           </button>
@@ -224,7 +227,7 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
 
       {/* D-3 부터 선물 상자 */}
       {[[24, 91], [72, 92], [61, 94]].slice(0, gifts).map(([l, t], i) => (
-        <span key={`gift${i}`} className="pop-in pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-[clamp(20px,7vw,30px)]"
+        <span key={`gift${i}`} aria-hidden className="pop-in pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-[clamp(20px,7vw,30px)]"
           style={{ left: `${l}%`, top: `${t}%`, animationDelay: `${i * 0.15}s` }}>
           {["🎁", "🎁", "🎀"][i]}
         </span>
@@ -232,21 +235,23 @@ export default function TreeScene({ theme, ornaments, season, onOrnamentClick, s
 
       {/* 포닉스 (탭하면 레드 트리) */}
       <button
-        key={`ponix${ponixHop}`}
         type="button"
         onClick={onPonix}
-        aria-label="포닉스"
-        className={`absolute bottom-[1%] left-[2%] w-[16%] ${ponixHop ? "ponix-hop" : ""}`}
+        aria-label={ponixRed ? "포닉스 (누르면 원래 트리로)" : "포닉스 (누르면 포스텍 레드 트리로 변신)"}
+        aria-pressed={ponixRed}
+        className="absolute bottom-[1%] left-[2%] min-h-11 w-[16%] min-w-11"
       >
-        <Ponix />
+        <span key={ponixHop} className={`block ${ponixHop ? "ponix-hop" : ""}`}><Ponix /></span>
       </button>
 
-      {sleigh && <div className="sleigh pointer-events-none fixed left-0 top-[18%] z-50 text-5xl">🦌🦌🛷🎅</div>}
+      {sleigh && <div aria-hidden className="sleigh pointer-events-none fixed left-0 top-[18%] z-50 text-5xl">🦌🦌🛷🎅</div>}
       {toast && (
-        <div className="pop-in pointer-events-none absolute inset-x-0 top-1/3 z-40 mx-auto w-max max-w-[90%] rounded-full bg-black/70 px-4 py-2 text-sm text-white">
+        <div aria-hidden className="pop-in pointer-events-none absolute inset-x-0 top-1/3 z-40 mx-auto w-max max-w-[90%] rounded-full bg-black/70 px-4 py-2 text-sm text-white">
           {toast}
         </div>
       )}
+      {/* 스크린 리더용: 항상 붙어 있는 알림 영역이어야 새 문구를 읽는다 */}
+      <p className="sr-only" role="status">{toast ?? ""}</p>
     </div>
   );
 }

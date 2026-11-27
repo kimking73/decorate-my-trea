@@ -30,9 +30,9 @@ export default function ShareButtons({ url, title, captureRef }: { url: string; 
 
   return (
     <div className="relative flex w-full flex-col gap-2">
-      <button className="btn btn-primary w-full" onClick={share}>🔗 내 트리 링크 공유하기</button>
-      {captureRef && <button className="btn btn-light w-full" onClick={saveImage}>📸 스토리용 이미지 저장</button>}
-      {msg && <p className="pop-in text-center text-sm">{msg}</p>}
+      <button type="button" className="btn btn-primary w-full" onClick={share}><span aria-hidden>🔗</span> 내 트리 링크 공유하기</button>
+      {captureRef && <button type="button" className="btn btn-light w-full" onClick={saveImage}><span aria-hidden>📸</span> 스토리용 이미지 저장</button>}
+      <p role="status" className={msg ? "pop-in text-center text-sm" : "sr-only"}>{msg ?? ""}</p>
     </div>
   );
 }

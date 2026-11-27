@@ -1,6 +1,6 @@
 # 포스텍 트리 — 제품 스펙
 
-> 마지막 갱신: 2026-11-25 (F7 `/professors`: 3장 하트 로그인 만료 시 로그인 안내(서버 액션이 먼저 로그인 확인, `code: "login_required"`)·불러오는 중 `loading.tsx`, 2.3 `toggleProfessorLike` 반환 타입 · F8 `/me/style`: 4.7 화면 흐름·미리보기 `inert` · C12 리뷰: 공개 재시도 진행 상황을 트리 주소별로 — 다른 화면 오류에 "꺼내는 중"이 뜨지 않게: 4.5 · C12 공개 순간 새로 고침 실패 처리: 4.5 실패 처리·백그라운드 탭, 5.1 일시적 오류 화면의 공개 중 재시도·다시 시도, 1.1 `DEMO_REVEAL_FAILURES`, 2.1 `useRevealRefresh.ts`·`scripts/reveal-check.mjs` · PR #17 리뷰 3건 수정 — 허락 대기 트리를 `trees` 테이블에서도 주인·관리자만 읽게(RLS), 닫힌 트리의 "편지 쓰기" 버튼·`/t/[slug]/write` 404, 홈이 내 트리 조회 실패에도 뜨게: 2.3, 4.6, 5.3 · 2026-11-21 (S21 서버 완성: `0006` 칠판 테마 제약·`admin_create_special_tree` RPC·허락 대기 트리 `slug` 숨김, `getTreeBySlug`의 허락 대기 처리와 조회 실패 throw: 2.3, 4.6, 4.7, 5.3 · 토스트 표시 규칙: 5.1 공통 상태 — 2.5초 유지, 같은 문구 다시 표시, `?toast=` 주소 정리 · T9 리뷰: 4.6 열람 링크 주소 Referrer 차단·운영 · C13 리뷰: 3장 새로 고친 뒤 뒤로 가기 · C13 편지 쓰기 2단계: 3장 친구 흐름(미리보기·뒤로 가기·임시 저장·오류 제목), 2.2 `WriteForm` props · T9 교수님께 편지 전하기 결정 — 비밀 열람 링크: 4.6, 3장, 2.1 `ReadLinkBox.tsx`, 2.2 `TreeView` `reader`, 2.3 `/t/[slug]?key=`·`/admin`, 5.1, 5.3 `0005`, 6장에서 결정으로 이동·특별 트리 안 씀 · F10 내 페이지를 내 트리로 통합: 5.1 `/me`·`/t/[slug]`, 3장, 2.2 `TreeView` `ownerMenu`, 2.1 `OwnerMenu.tsx` · F9 와이어프레임 전체를 데모로: 4.2 데모 로그인, 2.2 `treeColor`, 2.3 데모 분기·새 함수 이름, 4.7 임시 트리 색 · F4 서버 경계 점검: 2.3 화면별 실제 호출·오류 계약, 5.1 일시적 오류 화면, 2.1 `app/error.tsx` · 7장 타임라인 링크를 실제 주소로 교체 · F6 화면 구조 정리: 2.1에 프론트엔드 새 컴포넌트 · 와이어프레임 반영: 교수님 관심(하트)·허락 흐름, 내 트리 색·테마, 하트·허락 4.6, 내 트리 꾸미기 4.7, 화면별 데이터·액션 2.3, 화면 5.1, DB 5.3, 미정 6장) · 2026-11-17 (애니메이션 성능 규칙·동작 줄이기(C2): 4.2, 2.1 · 데모 전용 주인 화면 미리보기 `?owner=1`: 4.2 · 장식 페이지 넘김(C3): 5.1 · 12/25 0시 동시 접속 대비: 4.5, 6장 · 서버 담당: 2장 · 문서 간 중복 제거·환경변수 표 통합: 1.1, 7장 · QA용 데모 배포·공유 주소 기본값: 1.1 · plan.md 기술 스택 작업 가이드 규칙: 7장 · 작업 관리 규칙 추가: 7장 · 프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3~6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
+> 마지막 갱신: 2026-11-26 (C9 접근성: 4.2 동작 줄이기 범위 확정(썰매·폭죽·하트·흔들림 끔)·접근성 규칙(포커스 링·이름·알림·편지 창·터치 영역·대비), 2.1 `scripts/a11y-check.mjs`·`docs/qa-c9-a11y.md` · 2026-11-25 (F7 `/professors`: 3장 하트 로그인 만료 시 로그인 안내(서버 액션이 먼저 로그인 확인, `code: "login_required"`)·불러오는 중 `loading.tsx`, 2.3 `toggleProfessorLike` 반환 타입 · F8 `/me/style`: 4.7 화면 흐름·미리보기 `inert` · C12 리뷰: 공개 재시도 진행 상황을 트리 주소별로 — 다른 화면 오류에 "꺼내는 중"이 뜨지 않게: 4.5 · C12 공개 순간 새로 고침 실패 처리: 4.5 실패 처리·백그라운드 탭, 5.1 일시적 오류 화면의 공개 중 재시도·다시 시도, 1.1 `DEMO_REVEAL_FAILURES`, 2.1 `useRevealRefresh.ts`·`scripts/reveal-check.mjs` · PR #17 리뷰 3건 수정 — 허락 대기 트리를 `trees` 테이블에서도 주인·관리자만 읽게(RLS), 닫힌 트리의 "편지 쓰기" 버튼·`/t/[slug]/write` 404, 홈이 내 트리 조회 실패에도 뜨게: 2.3, 4.6, 5.3 · 2026-11-21 (S21 서버 완성: `0006` 칠판 테마 제약·`admin_create_special_tree` RPC·허락 대기 트리 `slug` 숨김, `getTreeBySlug`의 허락 대기 처리와 조회 실패 throw: 2.3, 4.6, 4.7, 5.3 · 토스트 표시 규칙: 5.1 공통 상태 — 2.5초 유지, 같은 문구 다시 표시, `?toast=` 주소 정리 · T9 리뷰: 4.6 열람 링크 주소 Referrer 차단·운영 · C13 리뷰: 3장 새로 고친 뒤 뒤로 가기 · C13 편지 쓰기 2단계: 3장 친구 흐름(미리보기·뒤로 가기·임시 저장·오류 제목), 2.2 `WriteForm` props · T9 교수님께 편지 전하기 결정 — 비밀 열람 링크: 4.6, 3장, 2.1 `ReadLinkBox.tsx`, 2.2 `TreeView` `reader`, 2.3 `/t/[slug]?key=`·`/admin`, 5.1, 5.3 `0005`, 6장에서 결정으로 이동·특별 트리 안 씀 · F10 내 페이지를 내 트리로 통합: 5.1 `/me`·`/t/[slug]`, 3장, 2.2 `TreeView` `ownerMenu`, 2.1 `OwnerMenu.tsx` · F9 와이어프레임 전체를 데모로: 4.2 데모 로그인, 2.2 `treeColor`, 2.3 데모 분기·새 함수 이름, 4.7 임시 트리 색 · F4 서버 경계 점검: 2.3 화면별 실제 호출·오류 계약, 5.1 일시적 오류 화면, 2.1 `app/error.tsx` · 7장 타임라인 링크를 실제 주소로 교체 · F6 화면 구조 정리: 2.1에 프론트엔드 새 컴포넌트 · 와이어프레임 반영: 교수님 관심(하트)·허락 흐름, 내 트리 색·테마, 하트·허락 4.6, 내 트리 꾸미기 4.7, 화면별 데이터·액션 2.3, 화면 5.1, DB 5.3, 미정 6장) · 2026-11-17 (애니메이션 성능 규칙·동작 줄이기(C2): 4.2, 2.1 · 데모 전용 주인 화면 미리보기 `?owner=1`: 4.2 · 장식 페이지 넘김(C3): 5.1 · 12/25 0시 동시 접속 대비: 4.5, 6장 · 서버 담당: 2장 · 문서 간 중복 제거·환경변수 표 통합: 1.1, 7장 · QA용 데모 배포·공유 주소 기본값: 1.1 · plan.md 기술 스택 작업 가이드 규칙: 7장 · 작업 관리 규칙 추가: 7장 · 프론트엔드·서버 역할 분리: 2장 · 기술 스택 확정: 1.1, 3~6장) · 작업을 시작하기 전에 이 문서를 먼저 고치고, 구현 단계는 [`plan.md`](./plan.md)에 체크리스트로 남깁니다.
 
 ## 1. 개요
 - **목표**: POSTECH 학생들이 인스타그램에 자기 트리 링크를 올리고, 친구들이 **익명 편지**를 장식으로 달아주는 연말 이벤트. 편지는 **12/25 00:00 KST**에 열린다.
@@ -77,7 +77,7 @@
 
 | 영역 | 소유 | 파일 |
 | --- | --- | --- |
-| 트리 화면 / 인터랙션 | 클라이언트 | `components/TreeScene.tsx`, `TreeView.tsx`, `useRevealRefresh.ts`, `WriteForm.tsx`, `LetterModal.tsx`, `Snow.tsx`, `Countdown.tsx`, `ShareButtons.tsx`, `lib/season.ts`, `app/globals.css` (애니메이션 부분), `scripts/perf-measure.mjs`, `scripts/reveal-check.mjs`, `docs/qa-c2-device.md` |
+| 트리 화면 / 인터랙션 | 클라이언트 | `components/TreeScene.tsx`, `TreeView.tsx`, `useRevealRefresh.ts`, `WriteForm.tsx`, `LetterModal.tsx`, `Snow.tsx`, `Countdown.tsx`, `ShareButtons.tsx`, `lib/season.ts`, `app/globals.css` (애니메이션·포커스 링 부분), `scripts/perf-measure.mjs`, `scripts/reveal-check.mjs`, `docs/qa-c2-device.md`, `scripts/a11y-check.mjs`, `docs/qa-c9-a11y.md` |
 | 카카오톡 공유 (선택) | 클라이언트 | `lib/kakao.ts` |
 | 페이지 / 폼 | 프론트엔드 | `app/**/page.tsx`, `app/**/loading.tsx`, `app/layout.tsx`, `app/not-found.tsx`, `app/error.tsx`, `app/opengraph-image.png`, `components/TreeForm.tsx`, `LoginButtons.tsx`, `ClaimForm.tsx`, `AdminCreateForm.tsx`, (새로) `ProfessorList.tsx`, `TreeStyleForm.tsx`, `OwnerMenu.tsx`, `Toast.tsx`, `ShareLinkButtons.tsx`, `ReadLinkBox.tsx`, `InAppNotice.tsx`, `ConfirmSubmitButton.tsx`, `LoadingSkeleton.tsx`, `package.json` (프론트엔드 의존성) |
 | 데이터 / 서버 | 서버 | `app/actions.ts`, `app/api/**`, `app/auth/**`, `middleware.ts`, `lib/data.ts`, `lib/supabase/**`, `lib/moderation.ts`, `supabase/migrations/**`, `scripts/test-rls.sql`, Vercel·Supabase 설정 |
@@ -191,8 +191,21 @@
 - 계속 도는 애니메이션은 `transform`·`opacity`만 움직인다. `filter`·색(`color`, `fill`)·그림자를 무한 애니메이션하지 않는다 (매 프레임 메인 스레드에서 다시 그린다). 색이 바뀌어야 하면 색이 다른 복사본을 겹쳐 `opacity`로 바꾼다 (무지개 전구, 빛나는 별).
 - 전구는 SVG 필터 없이 HTML + `box-shadow`로 그린다.
 - 내리는 눈은 초당 30번 그리고, 탭이 가려지면 멈춘다. 캔버스는 CSS 픽셀 크기(1배)로 둔다.
-- `prefers-reduced-motion`이면 계속 도는 연출(눈·장식 흔들림·전구 깜빡임·무지개·별)을 멈춘 채로 보여 준다. 탭해서 나오는 반응(별·포닉스·토스트)은 그대로 둔다.
+- `prefers-reduced-motion`이면 (C9에서 확정)
+  - 계속 도는 연출(눈·장식 흔들림·전구 깜빡임·체이스·무지개·별)은 멈춘 채로 보여 준다.
+  - 화면을 가로지르거나 크게 움직이는 연출(산타 썰매, 폭죽 `canvas-confetti`, 떠오르는 하트, 우는 장식·편지 카드 흔들림)은 **보여 주지 않는다**. 안내 문구(토스트)는 그대로 띄운다.
+  - 탭해서 나오는 반응은 움직임 없이 남긴다: 별은 빛만 잠깐 밝아지고(크기·회전 없음), 포닉스는 뛰지 않고 트리 색만 바뀐다. 나타나는 효과(`pop-in`)는 애니메이션 없이 바로 보인다.
 - 연출을 바꿨으면 `node scripts/perf-measure.mjs`(데모 모드 `npm start` 상태)로 전/후를 비교한다. 헤드리스 수치는 비교용이며 실기기 확인을 대신하지 않는다.
+
+**접근성 (C9)** — 키보드·스크린 리더로도 트리를 보고 편지를 쓰고 읽을 수 있어야 한다. 클라이언트 컴포넌트 기준이며, 페이지·폼은 같은 규칙을 프론트엔드가 따른다.
+- **포커스 표시**: 키보드 포커스(`:focus-visible`)는 `app/globals.css`의 공통 링(안쪽 남색 2px + 바깥 노랑 3px)으로 남색·흰 배경 모두에서 보이게 한다. 입력창·버튼에 `outline-none`을 쓰지 않는다 (마우스·터치 포커스는 링이 뜨지 않는다).
+- **이름**: 이모지만 있는 버튼·장식은 `aria-label`로 이름을 주고, 안의 이모지는 `aria-hidden`. 트리 장식은 "닉네임의 장식 이름 장식"이며 공개 전이면 ", 12월 25일에 열려요"를 붙인다. 별·포닉스는 누르면 무엇이 되는지 이름에 적는다.
+- **알림**: 화면에 잠깐 뜨는 안내(토스트)는 항상 붙어 있는 `role="status"` 영역에도 같은 문구를 넣어 스크린 리더가 읽게 한다.
+- **편지 창(`LetterModal`)**: `role="dialog"` + `aria-modal` + 이름("닉네임의 편지"). 열면 포커스가 창 안으로 가고(봉투 단계는 창 자체, 펼쳐지면 "닫기"), Tab은 창 안에서만 돈다. Esc·바깥 누르기·"닫기"로 닫고, 닫으면 열었던 장식으로 포커스가 돌아간다.
+- **편지 쓰기 장식 탭**: 탭 목록은 ←/→/Home/End로 옮기고 Tab 순서에는 고른 탭 하나만 둔다.
+- **터치 영역**: 클라이언트 소유 버튼(장식·별·포닉스·트리 넘김)은 최소 44×44px.
+- **색 대비**: 글자는 배경과 4.5:1 이상. 장식 아래 닉네임 라벨은 진한 반투명 배경(`bg-black/60`).
+- 점검: `node scripts/a11y-check.mjs --axe <axe.min.js 경로>`(데모 서버 실행 상태)로 데모 화면에 axe-core critical·serious 위반이 없는지 본다. axe-core는 저장소 의존성으로 넣지 않고 따로 받아 경로만 넘긴다. 결과와 키보드 점검표는 [`docs/qa-c9-a11y.md`](./docs/qa-c9-a11y.md).
 
 ### 4.3 이스터에그
 - **꼭대기 별**: 탭마다 반짝, 7연타 → 전구 전부 켜지며 체이스 + 산타 썰매

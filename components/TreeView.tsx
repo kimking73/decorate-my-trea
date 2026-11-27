@@ -165,7 +165,7 @@ export default function TreeView(p: Props) {
 
         <div ref={captureRef} className="flex w-full flex-col items-center rounded-3xl px-2 pb-2 pt-3" style={themeBackground(p.tree.theme)}>
           <h1 className="font-display text-center text-[26px] leading-tight">
-            {isSpecial && <span className="mr-1">{p.tree.kind === "professor" ? "👨‍🏫" : "✨"}</span>}
+            {isSpecial && <span className="mr-1" aria-hidden>{p.tree.kind === "professor" ? "👨‍🏫" : "✨"}</span>}
             {p.tree.title}
           </h1>
           <p className="mt-1 text-sm opacity-90">
@@ -201,12 +201,12 @@ export default function TreeView(p: Props) {
 
         {pages > 1 && (
           <nav aria-label="트리 넘기기" className="mt-2 flex items-center gap-2 text-sm">
-            <button type="button" className="btn btn-ghost !px-3 !py-1 text-xs" disabled={page === 0} onClick={() => go(0)}>처음</button>
-            <button type="button" className="btn btn-ghost !px-3 !py-1" disabled={page === 0} onClick={() => go(page - 1)} aria-label="이전 트리">◀</button>
+            <button type="button" className="btn btn-ghost min-h-11 min-w-11 !px-3 !py-1 text-xs" disabled={page === 0} onClick={() => go(0)} aria-label="처음 트리">처음</button>
+            <button type="button" className="btn btn-ghost min-h-11 min-w-11 !px-3 !py-1" disabled={page === 0} onClick={() => go(page - 1)} aria-label="이전 트리">◀</button>
             <span className="min-w-14 text-center tabular-nums" aria-hidden>{page + 1} / {pages}</span>
             <span className="sr-only" role="status">트리 {pages}개 중 {page + 1}번째 트리</span>
-            <button type="button" className="btn btn-ghost !px-3 !py-1" disabled={page === pages - 1} onClick={() => go(page + 1)} aria-label="다음 트리">▶</button>
-            <button type="button" className="btn btn-ghost !px-3 !py-1 text-xs" disabled={page === pages - 1} onClick={() => go(pages - 1)}>최신</button>
+            <button type="button" className="btn btn-ghost min-h-11 min-w-11 !px-3 !py-1" disabled={page === pages - 1} onClick={() => go(page + 1)} aria-label="다음 트리">▶</button>
+            <button type="button" className="btn btn-ghost min-h-11 min-w-11 !px-3 !py-1 text-xs" disabled={page === pages - 1} onClick={() => go(pages - 1)} aria-label="최신 트리">최신</button>
           </nav>
         )}
 
@@ -225,8 +225,10 @@ export default function TreeView(p: Props) {
           </div>
         )}
 
+        {/* 스크린 리더용 알림 영역은 항상 붙여 둔다 (조건부로 붙는 영역은 읽지 않는 경우가 있다, spec.md 4.2 접근성) */}
+        <p className="sr-only" role="status">{notice ?? ""}</p>
         {notice && (
-          <div className="pop-in fixed inset-x-0 bottom-24 z-40 mx-auto w-max max-w-[90%] rounded-full bg-black/75 px-4 py-2 text-sm text-white">
+          <div aria-hidden className="pop-in fixed inset-x-0 bottom-24 z-40 mx-auto w-max max-w-[90%] rounded-full bg-black/75 px-4 py-2 text-sm text-white">
             {notice}
           </div>
         )}
