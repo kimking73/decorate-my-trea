@@ -377,12 +377,13 @@
     - PR Preview 배포 확인
     - (선택) 카카오 공유용 Kakao Developers 도메인 등록
   - 산출물: 배포 URL
-- [ ] **S15** Vercel Analytics · (선택) Sentry · 11/21(토)–11/22(일) · 선행: S4
+- [x] **S15** Vercel Analytics · (선택) Sentry · 11/21(토)–11/22(일) · 선행: S4 · **2026-11-27 완료**
   - 인앱 브라우저 오류는 사용자가 신고해 주지 않으므로 Sentry가 있으면 좋음.
   - 할 일
-    - Vercel Analytics 켜기
-    - (선택) Sentry 연동 (instrumentation.ts)
-    - Supabase 사용량·일시정지 상태 확인 (무료 플랜은 약 1주일 미사용 시 일시정지)
+    - Vercel Analytics 켜기 — `@vercel/analytics` 설치, `components/WebAnalytics.tsx`(`beforeSend`로 검색어·해시 제거)를 `app/layout.tsx`에 넣고, Vercel 프로젝트의 Web Analytics를 켰다. QA 데모 배포(환경변수 없음)에서는 스크립트를 부르지 않고, Preview 배포는 라이브러리가 보내지 않는다 (`mode="auto"`).
+    - (선택) Sentry 연동 (instrumentation.ts) — **붙이지 않는다**. 남은 기간에 DSN·소스맵·개인정보(편지 내용이 오류 문맥에 실리지 않게) 설정까지 할 여유가 없고, 오류는 `app/error.tsx`와 Vercel 함수 로그로 본다. 필요해지면 6장처럼 나중에 더한다.
+    - Supabase 사용량·일시정지 상태 확인 (무료 플랜은 약 1주일 미사용 시 일시정지) — 2026-11-27 확인: 프로젝트 `uzzcklykbqqekcgmjwtu` **정상 가동**(`/auth/v1/health` 200, `get_stats()` 200, `reveal_at` 2026-12-24T15:00Z = 12/25 00:00 KST), `trees` 0건·`letters` 0건.
+  - ?key= 미수집: Next 통합이 경로(`/t/<slug>`)만 보내고, `beforeSend`가 검색어·해시를 지운다 (spec.md 4.5·4.6). 키가 붙은 주소는 `referrer: no-referrer`라 다음 페이지로 주소도 넘기지 않는다. Preview 배포도 수집된다(라이브러리가 NODE_ENV로 판단) — 대시보드에서 환경별로 나춰 보고, QA 데모 배포(환경변수 없음)만 스크립트를 부르지 않는다.
 - [x] **S20** 0003 마이그레이션: 교수님 허락·하트·트리 색 · 11/22(일)–11/24(화) · 선행: S11
   - 와이어프레임 반영 (2026-11-21 추가, 일정은 제안). spec.md 4.6·4.7·5.3.
   - 할 일
@@ -391,14 +392,14 @@
     - scripts/test-rls.sql: 비로그인 하트 실패, 1인 1하트, 누른 사람 비공개, 닫힌 트리 편지 실패, 일반 사용자가 is_open 못 바꿈
   - 산출물: supabase/migrations/0003_*.sql, test-rls.sql 케이스
   - 완료 기준: 빈 Postgres에서 RLS 테스트 통과
-- [ ] **S17** 0시 대비 조회 경량화 · 11/23(월)–11/25(수) · 선행: S12 ⭐
+- [x] **S17** 0시 대비 조회 경량화 · 11/23(월)–11/25(수) · 선행: S12 ⭐ · **2026-11-27 완료**
   - 트리 페이지 1회에 Supabase 호출이 약 7번, 홈은 get_stats()가 letters 전체를 4번 셈. spec.md 4.5.
   - 할 일
-    - lib/data.ts의 getUser·getTreeBySlug를 React cache()로 감싸 요청 안 중복 제거
-    - get_stats() 결과를 최대 60초 캐시 (홈만. 편지·장식 조회는 캐시 금지)
-    - 미들웨어 getUser()가 매 요청 Auth 서버를 부르는 부담 확인, 줄일 방법 검토
-    - letters 조회에 필요한 인덱스 확인 (tree_id, hidden)
-  - 완료 기준: 트리 페이지 1회의 Supabase 호출 수가 줄어든 것을 로그로 확인, 데모·실서버 흐름 그대로 동작
+    - lib/data.ts의 getUser·getTreeBySlug를 React cache()로 감싸 요청 안 중복 제거 — `main`에 이미 있음(`4d0f1be`, 2026-11-16). `generateMetadata`와 본문, `getProfile`이 같은 결과를 쓴다.
+    - get_stats() 결과를 최대 60초 캐시 (홈만. 편지·장식 조회는 캐시 금지) — `main`에 있음: `lib/data.ts` `sharedCache`(서버 인스턴스 메모리, 실패는 캐시하지 않음, 동시 요청은 하나를 같이 기다림). `getRevealAt()`도 60초 캐시. 편지·장식은 그대로 매번 조회.
+    - 미들웨어 getUser()가 매 요청 Auth 서버를 부르는 부담 확인, 줄일 방법 검토 — `main`에 있음: 세션 쿠키(`sb-…-auth-token`)가 없는 방문자는 Auth 서버를 부르지 않고, matcher에서 `_next/*`·`api/`·이미지도 뺐다. 로그인한 사용자는 세션 갱신을 위해 그대로 부른다.
+    - letters 조회에 필요한 인덱스 확인 (tree_id, hidden) — 0001의 `letters_tree_idx (tree_id, created_at)`는 있었지만 숨김을 빼지 않았다. `0008_letters_visible_index.sql`로 `letters_visible_tree_idx (tree_id, created_at) where not hidden`를 더했다 (2026-11-27, 운영 DB 적용).
+  - 완료 기준: 트리 페이지 1회의 Supabase 호출 수가 줄어든 것을 로그로 확인, 데모·실서버 흐름 그대로 동작 — 2026-11-27 계측(같은 코드에서 S17 부분만 뺀 빌드와 비교, 요청별 Supabase HTTP 호출 수): 홈 `/` 5회 연속 = **전 2·2·2·2·2 / 후 2·0·0·0·0** (60초 캐시), `/t/<없는 트리>`와 `/professors`는 1회 그대로(React의 fetch 메모 + cache()). 데모 모드 빌드·`/t/demo` 200 유지, lint·typecheck·build 통과.
 - [ ] **S21** 서버 액션·조회 함수 추가 · 11/24(화)–11/25(수) · 선행: S20
   - 와이어프레임 반영 (2026-11-21 추가, 일정은 제안). 데모 분기(데모 교수님 목록) 함께 추가.
   - 할 일
@@ -583,7 +584,7 @@
   - [x] `scripts/test-rls.sql`: 공개 전 0건, 틀린·이전·빈·null 키 0건, 공개 후 맞는 키만(숨김 제외), 닫힌 트리 0건, 일반 유저·anon `read_key` 못 읽음·못 씀, 비관리자 발급 실패 — 빈 로컬 Postgres 16에서 통과
   - [x] `lib/data.ts` `getLettersByReadKey()`·`AdminTreeRow.read_key`, `app/actions.ts` `adminIssueReadLink` (데모: `/t/prof-demo?key=demo`만)
   - [ ] 👤 운영 DB에 `0005` 적용 (SQL Editor, **이 PR을 배포하기 전에** — 없으면 `?key=` 주소가 오류 화면, 링크 만들기 실패) 후 실서버에서 링크 발급·열람 확인. 0003을 다시 돌렸다면 0005도 다시 돌린다 (0003이 `admin_list_special_trees`를 0005 이전 모양으로 되돌림)
-  - [ ] 관측 도구(S15)를 붙일 때 `?key=`가 수집되지 않게
+  - [x] 관측 도구(S15)를 붙일 때 `?key=`가 수집되지 않게 — 2026-11-27: `components/WebAnalytics.tsx`가 경로만 보내고 검색어를 지운다 (spec.md 4.5·4.6)
 - [ ] **교수님 열람 링크 — 관리자 화면 (T9 완료 후보)** — 🖥 프론트엔드(와장창프론트엔드 리뷰)
   - [x] `/admin` 교수님 목록: "열람 링크 만들기 / 링크 다시 만들기"(확인 창) + `ReadLinkBox`(링크 보기·복사) + "다시 만들면 이전 링크는 못 써요" 안내
   - [x] `/t/[slug]` page: `?key=` 분기, 키가 붙은 주소 `robots: noindex, nofollow`·`referrer: no-referrer`, OG url에 키 없음

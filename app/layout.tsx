@@ -2,6 +2,14 @@ import type { Metadata, Viewport } from "next";
 import { Gowun_Dodum, Jua } from "next/font/google";
 import "./globals.css";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { WebAnalytics } from "@/components/WebAnalytics";
+
+// 방문 수집은 환경변수가 있는 배포에서만 붙인다. 환경변수 없이 도는 QA 데모
+// (spec.md 1.1 데모 배포)에서는 스크립트를 부르지 않는다. Preview 배포도 같이
+// 수집되며(라이브러리가 NODE_ENV로 판단), 대시보드에서 환경별로 나춰 본다.
+const analyticsOn = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+);
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -42,7 +50,10 @@ const jua = Jua({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" className={`${gowunDodum.variable} ${jua.variable}`}>
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        {children}
+        {analyticsOn && <WebAnalytics />}
+      </body>
     </html>
   );
 }
