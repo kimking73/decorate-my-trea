@@ -52,7 +52,10 @@ export async function POST(req: NextRequest) {
   const isConfession = body.isConfession === true;
   const ornamentType = String(body.ornamentType ?? "");
 
-  if (!UUID.test(treeId)) return reply({ error: "트리를 찾을 수 없어요." }, 404);
+  // 실서버는 UUID 형식만 받는다. 데모 트리 id("demo", "demo-prof")는 UUID가 아니므로
+  // 데모 모드에서는 빈 값만 거절하고, 아래 검증은 실서버와 똑같이 거친다 (spec.md 5.2)
+  const validTreeId = isConfigured ? UUID.test(treeId) : treeId.length > 0;
+  if (!validTreeId) return reply({ error: "트리를 찾을 수 없어요." }, 404);
   if (!isValidOrnament(ornamentType)) return reply({ error: "장식을 골라주세요." }, 400);
   if (content.length < 1 || content.length > 1000)
     return reply({ error: "편지는 1~1000자로 써주세요." }, 400);
