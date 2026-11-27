@@ -332,6 +332,9 @@ export type AdminTreeRow = {
   letter_count: number; department: string | null; is_open: boolean; like_count: number;
   /** 교수님 열람 키 (없으면 null). 관리자 화면에서 링크를 만들 때만 쓴다 (spec.md 4.6) */
   read_key: string | null;
+  /** 정보 수정 폼이 미리 채우는 값 (0007 의 admin_list_special_trees 가 돌려준다) */
+  theme: string;
+  description: string | null;
 };
 
 /** /admin 교수님 목록 탭 (관리자만, DB admin_list_special_trees가 is_admin() 확인) */
@@ -341,6 +344,7 @@ export async function getAdminSpecialTrees(): Promise<AdminTreeRow[]> {
     return DEMO_PROFESSORS.map((p) => ({
       ...p, title: `${p.owner_name}께 드리는 트리`, kind: "professor", like_count: p.like_count + (likes.includes(p.id) ? 1 : 0),
       read_key: p.slug === "prof-demo" ? DEMO_READ_KEY : null,
+      theme: "chalkboard", description: null,
     }));
   }
   const supabase = await createClient();

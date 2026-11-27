@@ -581,6 +581,114 @@ end $$;
 reset role; update public.trees set is_open = true where id = '10000000-0000-0000-0000-000000000003';
 
 -- =========================================================
+-- 0007: 관리자 교수님 트리 정보 수정 (spec.md 3장 · 2.3)
+-- =========================================================
+\echo '--- 0007 다시 적용 (재실행해도 안전)'
+reset role;
+\i supabase/migrations/0007_admin_update_special_tree.sql
+
+\echo '--- 0007: anon 은 실행 권한이 없다'
+reset role; set role anon;
+do $$ begin
+  perform public.admin_update_special_tree('10000000-0000-0000-0000-000000000003', '바꿈', '이 교수님', 'classic', 'math', null);
+  raise exception 'SHOULD NOT CALL';
+exception when insufficient_privilege then raise notice 'ok: anon cannot update special tree'; end $$;
+
+\echo '--- 0007: 일반 사용자는 고칠 수 없다 (not_allowed, 값 그대로)'
+reset role; set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000b';
+do $$
+declare v jsonb;
+begin
+  v := public.admin_update_special_tree('10000000-0000-0000-0000-000000000003', '남이 바꾼 이름', '남', 'classic', 'cse', null);
+  if v ->> 'error' <> 'not_allowed' then raise exception 'expected not_allowed, got %', v; end if;
+  if (select title from public.trees where id = '10000000-0000-0000-0000-000000000003') <> '이 교수님 트리' then
+    raise exception 'SHOULD NOT CHANGE title';
+  end if;
+  raise notice 'ok: non-admin cannot update special tree';
+end $$;
+
+\echo '--- 0007: 관리자는 교수님 트리 정보를 고칠 수 있다 (주소·상태는 그대로)'
+reset role; set role authenticated; set request.jwt.sub = '00000000-0000-0000-0000-00000000000a';
+do $$
+declare
+  v jsonb;
+  r record;
+begin
+  v := public.admin_update_special_tree(
+    '10000000-0000-0000-0000-000000000003', '이 교수님께 드리는 트리', '이 교수님', 'classic', 'phys', '한 학기 동안 감사했습니다');
+  if (v ->> 'ok')::boolean is not true then raise exception 'expected ok, got %', v; end if;
+  select title, owner_name, theme, department, description, slug, is_open, kind into r
+    from public.trees where id = '10000000-0000-0000-0000-000000000003';
+  if r.title <> '이 교수님께 드리는 트리' then raise exception 'title not saved: %', r.title; end if;
+  if r.owner_name <> '이 교수님' then raise exception 'owner_name not saved'; end if;
+  if r.theme <> 'classic' then raise exception 'theme not saved: %', r.theme; end if;
+  if r.department <> 'phys' then raise exception 'department not saved'; end if;
+  if r.description <> '한 학기 동안 감사했습니다' then raise exception 'description not saved'; end if;
+  if r.slug <> 'prof-lee' then raise exception 'slug SHOULD NOT CHANGE: %', r.slug; end if;
+  if not r.is_open then raise exception 'is_open SHOULD NOT CHANGE'; end if;
+  if r.kind <> 'professor' then raise exception 'kind SHOULD NOT CHANGE'; end if;
+  raise notice 'ok: 관리자가 교수님 트리 정보를 고쳤다 (주소· 허락 상태 그대로)';
+end $$;
+
+\echo '--- 0007: 학과를 비우면 선택 안 함(null)으로 저장된다'
+do $$
+declare v jsonb;
+begin
+  v := public.admin_update_special_tree('10000000-0000-0000-0000-000000000003', '이 교수님께 드리는 트리', '이 교수님', 'classic', '', '');
+  if (v ->> 'ok')::boolean is not true then raise exception 'expected ok, got %', v; end if;
+  if (select department from public.trees where id = '10000000-0000-0000-0000-000000000003') is not null then
+    raise exception 'SHOULD CLEAR department';
+  end if;
+  if (select description from public.trees where id = '10000000-0000-0000-0000-000000000003') is not null then
+    raise exception 'SHOULD CLEAR description';
+  end if;
+  raise notice 'ok: 학과·설명을 비우면 null';
+end $$;
+
+\echo '--- 0007: 일반 학생 트리는 대상이 아니다'
+do $$
+declare v jsonb;
+begin
+  v := public.admin_update_special_tree('10000000-0000-0000-0000-000000000004', '관리자가 바꾼 학생 트리', '학생', 'classic', null, null);
+  if v ->> 'error' <> 'not_a_special_tree' then raise exception 'expected not_a_special_tree, got %', v; end if;
+  if (select title from public.trees where id = '10000000-0000-0000-0000-000000000004') <> '내 트리' then
+    raise exception 'SHOULD NOT CHANGE user tree';
+  end if;
+  raise notice 'ok: 일반 학생 트리는 고치지 않는다';
+end $$;
+
+\echo '--- 0007: 없는 트리·잘못된 입력은 코드로 돌려준다'
+do $$
+declare v jsonb; v_long text := repeat('가', 201);
+begin
+  v := public.admin_update_special_tree('20000000-0000-0000-0000-000000000009', '제목', '이름', 'classic', null, null);
+  if v ->> 'error' <> 'not_found' then raise exception 'expected not_found, got %', v; end if;
+  v := public.admin_update_special_tree('10000000-0000-0000-0000-000000000003', '', '이름', 'classic', null, null);
+  if v ->> 'error' <> 'invalid_title' then raise exception 'expected invalid_title, got %', v; end if;
+  v := public.admin_update_special_tree('10000000-0000-0000-0000-000000000003', '제목', '', 'classic', null, null);
+  if v ->> 'error' <> 'invalid_owner_name' then raise exception 'expected invalid_owner_name, got %', v; end if;
+  v := public.admin_update_special_tree('10000000-0000-0000-0000-000000000003', '제목', '이름', 'nope', null, null);
+  if v ->> 'error' <> 'invalid_theme' then raise exception 'expected invalid_theme, got %', v; end if;
+  v := public.admin_update_special_tree('10000000-0000-0000-0000-000000000003', '제목', '이름', 'classic', 'nope', null);
+  if v ->> 'error' <> 'invalid_department' then raise exception 'expected invalid_department, got %', v; end if;
+  v := public.admin_update_special_tree('10000000-0000-0000-0000-000000000003', '제목', '이름', 'classic', null, v_long);
+  if v ->> 'error' <> 'invalid_description' then raise exception 'expected invalid_description, got %', v; end if;
+  if (select title from public.trees where id = '10000000-0000-0000-0000-000000000003') <> '이 교수님께 드리는 트리' then
+    raise exception 'SHOULD NOT CHANGE on invalid input';
+  end if;
+  raise notice 'ok: 잘못된 입력은 error 코드로 (예외 문장 노출 없음)';
+end $$;
+
+\echo '--- 0007: admin_list_special_trees 가 정보 수정 폼에 필요한 theme·description 을 돌려준다'
+do $$
+declare r record;
+begin
+  select theme, description into r from public.admin_list_special_trees() where slug = 'prof-lee';
+  if r.theme is null then raise exception 'theme missing in admin_list_special_trees'; end if;
+  raise notice 'ok: 목록에 theme·description 포함 (%)', r.theme;
+end $$;
+
+-- =========================================================
 -- 0002 submit_letter(): service_role 만 실행 · 작성 제한 (spec.md 4.4 · 5.3)
 -- =========================================================
 \echo '--- submit_letter: anon 직접 호출 (실패해야 함)'

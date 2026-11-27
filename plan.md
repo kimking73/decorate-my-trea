@@ -571,8 +571,8 @@
   - [x] `adminCreateSpecialTree` → `admin_create_special_tree` RPC로 허락 대기(`is_open = false`) 생성, 테마·학과 id 검사
   - [x] `0006`: 칠판 테마 check 제약 `trees_chalkboard_professor_only`, `trees` SELECT 정책(허락 대기 특별 트리는 주인·관리자만), `list_professors()` slug 숨김, `admin_set_tree_open()` 일반 트리 거부 — `test-rls.sql` 통과(CI)
   - [x] 홈이 내 트리 조회 실패에도 뜬다 (spec.md 2.3)
-  - [ ] `adminUpdateSpecialTree`(교수님 트리 정보 수정) — `/admin` 목록 버튼은 "준비 중"
-  - [ ] 👤 운영 DB에 **최신** `0006` 적용 (SQL Editor, 재실행 안전). 리뷰 수정으로 파일이 바뀌었으니 예전 버전을 적용했어도 다시 실행. 적용 전 배포되면 "교수님 트리 만들기"가 실패한다
+  - [x] `adminUpdateSpecialTree`(교수님 트리 정보 수정) — `0007` `admin_update_special_tree()` RPC, `/admin` 목록의 "정보 수정" 펼침 폼(`AdminEditForm`), `scripts/test-rls.sql` 추가. 주소(`slug`)는 바꾸지 않는다 (열람 링크가 `/t/<slug>?key=…`)
+  - [ ] 👤 운영 DB에 **최신** `0006` 적용 (SQL Editor, 재실행 안전). 리뷰 수정으로 파일이 바뀌었으니 예전 버전을 적용했어도 다시 실행. 적용 전 배포되면 "교수님 트리 만들기"가 실패한다 → 2026-11-27 적용 완료 (테마·학과 id 검사)
   - [ ] 👥 결정: 교수님 트리를 만든 관리자가 주인(`owner_id`)이 되어 12/25 이후 교수님 편지를 읽을 수 있음 — 허용할지 (PR #17 코멘트). 막으려면 시스템 주인 또는 `kind <> 'user'`는 주인 열람 금지. **S7(교수님 트리 준비) 전에** 정한다
   - [ ] RLS의 `public.is_admin()`을 `(select public.is_admin())`로 감싸 한 번만 계산 (S18 부하 테스트 때)
 

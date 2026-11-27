@@ -239,6 +239,45 @@ export async function adminSetTreeOpen(fd: FormData) {
   redirect(back(error ? "failed" : open ? "opened" : "closed"));
 }
 
+// ---------- 관리자: 교수님 트리 정보 수정 (spec.md 3장, 0007) ----------
+// admin_update_special_tree(0007)가 돌려주는 오류 코드 → 사용자 문구 (spec.md 2.3: DB 문장을 그대로 보이지 않는다)
+const UPDATE_ERRORS: Record<string, string> = {
+  not_allowed: "관리자만 고칠 수 있어요.",
+  not_found: "트리를 찾을 수 없어요.",
+  not_a_special_tree: "교수님·특별 트리만 고칠 수 있어요.",
+  invalid_title: "트리 이름을 입력해주세요.",
+  invalid_owner_name: "주인 이름을 입력해주세요.",
+  invalid_theme: "테마를 다시 골라 주세요.",
+  invalid_department: "학과를 다시 골라 주세요.",
+  invalid_description: "설명은 200자까지 쓸 수 있어요.",
+};
+const UPDATE_FAILED = "고치지 못했어요. 잠시 후 다시 시도해 주세요.";
+
+export async function adminUpdateSpecialTree(_: FormState, fd: FormData): Promise<FormState> {
+  if (demoMode) return { error: "데모라 저장되지 않아요. 실서버에서 고칠 수 있어요." };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요해요." };
+  const v = readSpecialTreeForm(fd);
+  if (!v.title || !v.owner_name) return { error: "제목과 이름을 입력해주세요." };
+  // 주소(slug)는 바꾸지 않는다 — 교수님 열람 링크가 /t/<slug>?key=… 라서 깨진다 (0007)
+  const { data, error } = await supabase.rpc("admin_update_special_tree", {
+    p_tree_id: String(fd.get("tree_id")),
+    p_title: v.title, p_owner_name: v.owner_name,
+    p_theme: v.theme, p_department: v.department, p_description: v.description,
+  });
+  if (error) return { error: UPDATE_FAILED };
+  const r = (data ?? {}) as { ok?: boolean; error?: string };
+  if (r.ok !== true) return { error: UPDATE_ERRORS[r.error ?? ""] ?? UPDATE_FAILED };
+  // 보던 필터로 돌아간다 (adminSetTreeOpen 과 같음, spec.md 2.3)
+  const filterRaw = String(fd.get("filter") ?? "");
+  const filter = LIST_FILTERS.includes(filterRaw) ? filterRaw : "";
+  revalidatePath("/admin");
+  revalidatePath("/professors");
+  revalidatePath("/");
+  redirect(`/admin?tab=list${filter ? `&filter=${filter}` : ""}&toast=updated`);
+}
+
 // ---------- 관리자: 교수님 비밀 열람 링크 (spec.md 4.6, T9) ----------
 // 키는 DB(admin_issue_read_key)가 만들고, 다시 만들면 이전 키는 무효. 관리자 확인도 DB가 한다.
 export async function adminIssueReadLink(fd: FormData) {

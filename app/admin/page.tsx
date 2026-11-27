@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminCreateForm from "@/components/AdminCreateForm";
+import AdminEditForm from "@/components/AdminEditForm";
 import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
 import ReadLinkBox from "@/components/ReadLinkBox";
 import Toast from "@/components/Toast";
@@ -27,6 +28,7 @@ type FilterId = (typeof FILTERS)[number]["id"];
 // 액션이 /admin?toast=… 로 보내면 화면 아래 알림 (spec.md 5.1)
 const TOASTS: Record<string, string> = {
   created: "교수님 트리를 허락 대기로 만들었어요",
+  updated: "교수님 트리 정보를 고쳤어요",
   opened: "트리를 열었어요",
   closed: "트리를 닫았어요",
   link_issued: "열람 링크를 만들었어요. 복사해서 교수님께 보내 주세요",
@@ -132,7 +134,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     {t.is_open ? "트리 열림" : "허락 대기"}
                   </span>
                 </div>
-                <div className="grid grid-cols-[3fr_2fr] gap-2">
+                <div className="grid gap-2">
                   {t.is_open ? (
                     <Link href={`/t/${t.slug}`} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold">트리 보기</Link>
                   ) : (
@@ -148,10 +150,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                       </ConfirmSubmitButton>
                     </form>
                   )}
-                  {/* 정보 수정(adminUpdateSpecialTree)은 S21에서 서버가 만든 뒤 연결 */}
-                  <button type="button" disabled title="준비 중" className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 text-sm font-bold opacity-50">
-                    정보 수정
-                  </button>
+                  {/* 정보 수정: 0007 admin_update_special_tree (spec.md 3장) — 주소는 바꿀 수 없다 */}
+                  <details>
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center rounded-xl border border-slate-300 text-sm font-bold [&::-webkit-details-marker]:hidden">
+                      정보 수정
+                    </summary>
+                    <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3">
+                      <AdminEditForm tree={t} filter={filter} />
+                    </div>
+                  </details>
                 </div>
                 {/* 교수님 비밀 열람 링크 (spec.md 4.6, T9): 로그인 없이 12/25 0시부터 편지를 읽는 링크 */}
                 <div className="flex flex-col gap-2 border-t border-slate-200 pt-3">
