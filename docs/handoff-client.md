@@ -13,7 +13,7 @@
 | C12 공개 순간 요청 흩기·자동 재시도 | [#5](https://github.com/kimking73/decorate-my-trea/pull/5), [#18](https://github.com/kimking73/decorate-my-trea/pull/18), [#19](https://github.com/kimking73/decorate-my-trea/pull/19) | 검증 `scripts/reveal-check.mjs`, 규칙 spec.md 4.5 |
 | T9 교수님 열람 화면 (`TreeView` `reader`) | [#15](https://github.com/kimking73/decorate-my-trea/pull/15) | 타임라인 번호 없음 (plan.md "타임라인에 아직 없는 작업") |
 | 토스트 버그 수정 | [#16](https://github.com/kimking73/decorate-my-trea/pull/16) | 파일은 프론트엔드 소유 |
-| C9 접근성 | 브랜치 `task/C9-a11y` (PR 진행 중) | 포커스 표시, 편지 창 포커스 가두기·Esc, 움직임 줄이기. axe 위반 1→0 |
+| C9 접근성 | [#25](https://github.com/kimking73/decorate-my-trea/pull/25) (리뷰 대기) | 포커스 표시, 편지 창 포커스 가두기·Esc, 움직임 줄이기. axe 위반 1→0 |
 | 데모 "트리에 달기" 404 수정 | [#22](https://github.com/kimking73/decorate-my-trea/pull/22) (열림) | 머지 여부 확인 필요 |
 
 ## 2. 남은 작업
