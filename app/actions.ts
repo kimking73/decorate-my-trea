@@ -168,21 +168,28 @@ export async function adminResolve(fd: FormData) {
 }
 
 // ---------- 교수님 하트 (spec.md 4.6) ----------
-export async function toggleProfessorLike(treeId: string): Promise<{ liked: boolean; count: number } | { error: string }> {
+type LikeError = { error: string; code?: "login_required" };
+const LIKE_LOGIN_REQUIRED: LikeError = { error: "로그인하면 하트를 보낼 수 있어요.", code: "login_required" };
+
+export async function toggleProfessorLike(treeId: string): Promise<{ liked: boolean; count: number } | LikeError> {
   if (demoMode) {
     const s = await readDemoSession();
     const base = demoProfessorBaseCount(treeId);
-    if (!s) return { error: "로그인하면 하트를 보낼 수 있어요." };
+    if (!s) return LIKE_LOGIN_REQUIRED;
     if (base === null) return { error: "교수님을 찾을 수 없어요." };
     const liked = !s.likes.includes(treeId);
     await writeDemoSession({ ...s, likes: liked ? [...s.likes, treeId] : s.likes.filter((x) => x !== treeId) });
     return { liked, count: base + (liked ? 1 : 0) };
   }
   const supabase = await createClient();
+  // 로그인 확인을 따로 하지 않고 RPC 한 번으로 끝낸다 (하트가 몰릴 때 Auth 왕복을 줄임).
+  // 세션이 없거나 끝난 요청은 anon으로 가서 실행 권한이 없으므로(0003: authenticated만) 42501,
+  // 만료된 토큰이 그대로 가면 PostgREST가 PGRST301/PGRST303 → 둘 다 로그인 필요
   const { data, error } = await supabase.rpc("toggle_professor_like", { p_tree_id: treeId });
+  if (error && ["42501", "PGRST301", "PGRST303"].includes(error.code)) return LIKE_LOGIN_REQUIRED;
   if (error) return { error: "잠시 후 다시 눌러 주세요." };
   const r = (data ?? {}) as { error?: string; liked?: boolean; like_count?: number };
-  if (r.error === "login_required") return { error: "로그인하면 하트를 보낼 수 있어요." };
+  if (r.error === "login_required") return LIKE_LOGIN_REQUIRED;
   if (r.error) return { error: "교수님을 찾을 수 없어요." };
   revalidatePath("/professors");
   return { liked: !!r.liked, count: Number(r.like_count ?? 0) };
